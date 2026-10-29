@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physics of Ice in Cocktails</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --panel:#fafaf9; --line:#ececea; --line2:#dcdcd9;
+    --text:#1b1d20; --mute:#6c7178; --dim:#a0a5ab; --accent:#4f86a3; --body:#4a4f55;
+    --warm:#b5762f; --glass-bg:rgba(255,255,255,.85);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1013; --panel:#121519; --line:#22262c; --line2:#2e333a;
+    --text:#e8e8e5; --mute:#8d939b; --dim:#5f656d; --accent:#9cc6db; --body:#b9bdc2;
+    --warm:#d9a35e; --glass-bg:rgba(18,21,25,.85);
+  }
+  .tools{display:flex;align-items:center;gap:8px;margin-left:16px}
+  .iconbtn{background:none;border:1px solid var(--line2);color:var(--mute);font:inherit;height:32px;min-width:32px;padding:0 10px;
+           border-radius:16px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+  .iconbtn:hover{color:var(--text);border-color:var(--mute)}
+  .iconbtn.on{color:var(--text);border-color:var(--text)}
+  .iconbtn svg{width:15px;height:15px}
+  #musicVol{width:70px;display:none}
+  #musicVol.show{display:block}
+  .eq{display:inline-flex;gap:2px;align-items:flex-end;height:11px}
+  .eq i{width:2px;background:currentColor;height:3px}
+  .iconbtn.on .eq i{animation:eq 1s ease-in-out infinite}
+  .iconbtn.on .eq i:nth-child(2){animation-delay:.2s} .iconbtn.on .eq i:nth-child(3){animation-delay:.4s}
+  @keyframes eq{0%,100%{height:3px}50%{height:11px}}
+  table.cmp{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+  table.cmp th{font-weight:500;color:var(--mute);text-align:right;padding:6px 0;border-bottom:1px solid var(--line2);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  table.cmp th:first-child,table.cmp td:first-child{text-align:left;color:var(--mute)}
+  table.cmp td{padding:7px 0;border-bottom:1px solid var(--line);text-align:right}
+  .c-shake{color:var(--accent)} .c-stir{color:var(--warm)}
+  canvas.mchart{width:100%;height:120px;display:block;border:1px solid var(--line);margin-bottom:4px}
+  .vlabel{position:absolute;pointer-events:none;transform:translate(-50%,-100%);text-align:center;white-space:nowrap}
+  .vlabel .n{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+  .vlabel .val{font-size:20px;font-weight:300;color:var(--text);font-variant-numeric:tabular-nums}
+  .vlabel .sub{font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .refs{font-size:11.5px;color:var(--mute);padding-left:16px;margin:0}
+  .refs li{margin-bottom:6px}
+  .refs a{color:var(--body)}
+  .timebar{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(560px,80%);display:flex;align-items:center;gap:12px;
+           background:var(--glass-bg);backdrop-filter:blur(8px);border:1px solid var(--line2);border-radius:30px;padding:8px 16px}
+  .timebar button{background:var(--text);color:var(--bg);border:0;border-radius:50%;width:30px;height:30px;cursor:pointer;flex:none;font-size:11px}
+  .timebar b{font-weight:400;font-variant-numeric:tabular-nums;min-width:48px;text-align:right;color:var(--text)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font:13px/1.55 Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+       display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+  header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:58px;border-bottom:1px solid var(--line);flex:none}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand h1{font-size:14px;font-weight:500;letter-spacing:.02em;margin:0}
+  .brand span{color:var(--mute);font-weight:300}
+  .tabs{display:flex;gap:4px;height:100%}
+  .tabs button{background:none;border:0;color:var(--mute);font:inherit;padding:0 16px;cursor:pointer;
+       border-bottom:1px solid transparent;height:100%;letter-spacing:.02em;transition:color .2s}
+  .tabs button:hover{color:var(--text)}
+  .tabs button.active{color:var(--text);border-bottom-color:var(--text)}
+  main{flex:1;display:flex;min-height:0}
+  #stage{flex:1;position:relative;min-width:0}
+  #stage canvas{display:block;width:100%;height:100%;outline:none}
+  aside{width:390px;flex:none;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:26px 26px 40px;display:none}
+  aside.active{display:block}
+  aside::-webkit-scrollbar{width:6px} aside::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+  .eyebrow{font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);margin:0 0 8px}
+  h2{font-size:22px;font-weight:400;margin:0 0 2px;letter-spacing:-.01em}
+  h2 small{font-size:13px;color:var(--mute);font-weight:300;margin-left:6px}
+  h3{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--mute);font-weight:500;margin:26px 0 10px}
+  p{margin:0 0 10px;color:var(--body);font-weight:300}
+  .rows{border-top:1px solid var(--line)}
+  .row{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .row .k{color:var(--mute);flex:none}
+  .row .v{text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:2px;background:var(--line2);margin-top:6px;position:relative}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--text)}
+  .seg{display:flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden}
+  .seg button{flex:1;background:none;border:0;color:var(--mute);font:inherit;padding:9px 6px;cursor:pointer;transition:all .2s}
+  .seg button+button{border-left:1px solid var(--line2)}
+  .seg button.active{background:var(--text);color:var(--bg)}
+  .ctrl{margin:14px 0}
+  .ctrl label{display:flex;justify-content:space-between;color:var(--mute);margin-bottom:6px}
+  .ctrl label b{color:var(--text);font-weight:400;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line2);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--text);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--text);border:0;cursor:pointer}
+  .btns{display:flex;gap:8px;margin-top:14px}
+  .btn{flex:1;background:none;border:1px solid var(--line2);color:var(--text);font:inherit;padding:9px;cursor:pointer;border-radius:2px;transition:all .2s}
+  .btn:hover{border-color:var(--mute)}
+  .btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .check{display:flex;align-items:center;gap:8px;color:var(--mute);cursor:pointer;margin-top:12px;user-select:none}
+  .check input{accent-color:var(--text)}
+  .note{border-left:1px solid var(--mute);padding:2px 0 2px 12px;color:var(--mute);font-size:12px;margin:14px 0}
+  .tag{display:inline-block;border:1px solid var(--line2);padding:2px 8px;border-radius:20px;font-size:11.5px;color:var(--body);margin:0 4px 6px 0}
+  /* overlays */
+  .ov{position:absolute;pointer-events:none;color:var(--mute);font-size:12px}
+  .ov-tl{top:22px;left:24px}
+  .ov-tl .t{color:var(--text);font-size:15px;font-weight:400;margin-bottom:2px}
+  .ov-tr{top:22px;right:24px;text-align:right;font-size:11px;color:var(--dim)}
+  .picker{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;gap:2px;
+          background:var(--glass-bg);backdrop-filter:blur(8px);border:1px solid var(--line2);padding:4px;border-radius:40px}
+  .picker button{background:none;border:0;color:var(--mute);font:inherit;padding:8px 16px;border-radius:30px;cursor:pointer;white-space:nowrap;transition:all .2s}
+  .picker button:hover{color:var(--text)}
+  .picker button.active{background:var(--text);color:var(--bg)}
+  .legend{position:absolute;left:24px;bottom:24px;display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:var(--mute);pointer-events:none}
+  .legend div{display:flex;align-items:center;gap:8px}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .lnk{width:14px;height:1px;background:var(--accent);display:inline-block}
+  .status{position:absolute;right:24px;bottom:24px;max-width:340px;text-align:right;font-size:12px;color:var(--text);pointer-events:none;opacity:.85}
+  .layer{display:none} .layer.active{display:block}
+  canvas#chart{width:100%;height:130px;display:block;border:1px solid var(--line)}
+  .chartleg{display:flex;gap:14px;font-size:11px;color:var(--mute);margin-top:6px}
+  table.k{width:100%;border-collapse:collapse;font-size:12px}
+  table.k td{padding:6px 0;border-bottom:1px solid var(--line);color:var(--body)}
+  table.k td:last-child{text-align:right;color:var(--text)}
+  /* Drawer toggle for mobile */
+  .drawer-toggle{display:none}
+  .drawer-backdrop{display:none}
+
+  /* Full responsive mobile styles: zero overlap, fluid touch controls */
+  @media (max-width:820px){
+    header{height:auto;padding:8px 14px 0;flex-direction:column;align-items:stretch;gap:6px}
+    .header-top{display:flex;align-items:center;justify-content:space-between;width:100%}
+    .brand h1{font-size:13px}
+    .brand-sub{display:none}
+    .tools{margin-left:0;gap:6px}
+    #musicLbl{display:none}
+    #musicVol{width:54px}
+    .tabs{width:100%;display:flex;height:38px;border-top:1px solid var(--line);margin:0;gap:0}
+    .tabs button{flex:1;padding:0 4px;font-size:11px;text-align:center;letter-spacing:0}
+    
+    main{position:relative;flex-direction:column}
+    #stage{width:100%;height:100%}
+    #stage canvas{touch-action:none}
+    
+    /* Floating mobile drawer handle */
+    .drawer-toggle{
+      display:flex;position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+      z-index:60;align-items:center;gap:8px;height:36px;padding:0 15px;
+      background:var(--glass-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border:1px solid var(--line2);border-radius:20px;color:var(--text);
+      font-size:11.5px;font-weight:500;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,0.18);
+      white-space:nowrap;transition:all .22s ease;
+    }
+    .drawer-toggle:active{transform:translateX(-50%) scale(0.97)}
+    .drawer-toggle .drawer-chev{font-size:9px;color:var(--mute);transition:transform .25s ease}
+    body.drawer-open .drawer-toggle .drawer-chev{transform:rotate(180deg)}
+    
+    .drawer-backdrop{
+      position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:40;
+      opacity:0;pointer-events:none;transition:opacity .25s ease;
+    }
+    body.drawer-open .drawer-backdrop{opacity:1;pointer-events:auto;display:block}
+    
+    /* Sliding bottom sheet aside */
+    aside{
+      position:absolute;left:0;right:0;bottom:0;width:100%;max-height:76vh;
+      border-left:0;border-top:1px solid var(--line2);border-radius:20px 20px 0 0;
+      box-shadow:0 -8px 36px rgba(0,0,0,0.3);z-index:50;padding:20px 20px 58px;
+      transform:translateY(calc(100% + 15px));
+      transition:transform .3s cubic-bezier(0.16, 1, 0.3, 1);
+      display:none;overscroll-behavior:contain;
+    }
+    aside.active{display:block}
+    body.drawer-open aside.active{transform:translateY(0)}
+    
+    /* Mobile-specific overlays: non-overlapping positions */
+    .ov-tl{top:12px;left:14px;font-size:11px}
+    .ov-tl .t{font-size:13.5px}
+    .ov-tr{display:none}
+    
+    /* Tab 1 Picker: horizontal scrollable pill bar */
+    .picker{
+      bottom:54px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 20px);
+      width:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+      white-space:nowrap;padding:4px 6px;gap:4px;border-radius:24px;
+    }
+    .picker::-webkit-scrollbar{display:none}
+    .picker button{padding:6px 12px;font-size:11px;flex:none}
+    
+    /* Tab 2 Legend & Status */
+    .status{
+      top:52px;left:14px;right:14px;bottom:auto;max-width:none;
+      font-size:11px;background:var(--glass-bg);backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);padding:6px 10px;border-radius:8px;
+      border:1px solid var(--line2);text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
+    .legend{
+      left:14px;bottom:54px;background:var(--glass-bg);backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);padding:6px 10px;border-radius:8px;
+      border:1px solid var(--line2);font-size:10.5px;
+    }
+    
+    /* Tab 3 Labels & Timebar */
+    .vlabel{
+      background:var(--glass-bg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      border:1px solid var(--line2);border-radius:8px;padding:4px 8px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.12);
+    }
+    .vlabel .val{font-size:15px}
+    .vlabel .n{font-size:9.5px}
+    .vlabel .sub{font-size:10px}
+    
+    .timebar{
+      bottom:54px;left:50%;transform:translateX(-50%);width:calc(100vw - 24px);
+      max-width:440px;padding:6px 12px;gap:8px;
+    }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><path d="M12 7.5l3.9 2.25v4.5L12 16.5l-3.9-2.25v-4.5z" opacity=".5"/>
+      </svg>
+      <h1>Physics of Ice <span class="brand-sub">in Cocktails</span></h1>
+    </div>
+    <div class="tools">
+      <button class="iconbtn" id="musicBtn" title="Kissaten jazz (generated live in your browser)">
+        <span class="eq"><i></i><i></i><i></i></span><span id="musicLbl">Kissaten Jazz</span>
+      </button>
+      <input type="range" id="musicVol" min="0" max="1" step="0.01" value="0.55" title="Volume">
+      <button class="iconbtn" id="themeBtn" title="Toggle light / dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="active" data-tab="glass">Ice in the Glass</button>
+    <button data-tab="freeze">Freezing Simulation</button>
+    <button data-tab="mix">Shaking vs Stirring</button>
+  </nav>
+</header>
+
+<main>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <button id="drawerToggle" class="drawer-toggle" aria-label="Toggle details panel">
+    <span class="drawer-text" id="drawerBtnText">Controls &amp; Details</span>
+    <span class="drawer-chev">▲</span>
+  </button>
+  <div id="stage">
+    <!-- Glass tab overlays -->
+    <div class="layer active" data-layer="glass">
+      <div class="ov ov-tl"><div class="t" id="ovName">Collins Spear</div><div id="ovGlass">Highball / Collins glass</div></div>
+      <div class="ov ov-tr">Drag to rotate · Scroll to zoom · Right-drag to pan</div>
+      <div class="picker" id="picker"></div>
+    </div>
+    <!-- Freeze tab overlays -->
+    <div class="layer" data-layer="freeze">
+      <div class="ov ov-tl"><div class="t" id="ovMode">Omnidirectional Freezing</div><div id="ovModeSub">Heat extracted through all 6 faces</div></div>
+      <div class="ov ov-tr">60 mm block · Drag to rotate · Scroll to zoom</div>
+      <div class="legend">
+        <div><span class="dot" style="background:#8c949d"></span>Dissolved gas (O₂, N₂, CO₂)</div>
+        <div><span class="dot" style="background:#4f86a3"></span>Minerals / TDS (Ca²⁺, Mg²⁺, Na⁺)</div>
+        <div><span class="dot" style="background:#f4f7f9;box-shadow:inset 0 0 0 1.5px #9aa3ab"></span>Micro-void / inclusion (scatters light)</div>
+        <div><span class="lnk"></span>Freezing front</div>
+      </div>
+      <div class="status" id="status">Press Start to begin freezing.</div>
+    </div>
+    <!-- Mix tab overlays -->
+    <div class="layer" data-layer="mix">
+      <div class="ov ov-tl"><div class="t">Shaking vs Stirring</div><div id="ovMixSub">Same drink · same ice · two techniques</div></div>
+      <div class="ov ov-tr">Cutaway shaker tin · Drag to rotate · Scroll to zoom</div>
+      <div class="vlabel" id="lblShake"><div class="n c-shake">Shaken</div><div class="val" id="lsT">22.0 °C</div><div class="sub" id="lsD">dilution 0 %</div></div>
+      <div class="vlabel" id="lblStir"><div class="n c-stir">Stirred</div><div class="val" id="ltT">22.0 °C</div><div class="sub" id="ltD">dilution 0 %</div></div>
+      <div class="timebar">
+        <button id="mixPlay">▶</button>
+        <input type="range" id="mixT" min="0" max="120" step="0.05" value="0">
+        <b id="mixTOut">0.0 s</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Panel: Ice in the glass ===== -->
+  <aside id="panel-glass" class="active">
+    <p class="eyebrow">Types of Cocktail Ice</p>
+    <h2 id="tName">Collins Spear</h2>
+    <div class="rows" style="margin-top:16px">
+      <div class="row"><span class="k">Shape &amp; size</span><span class="v" id="tSize"></span></div>
+      <div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span class="k">Melt rate</span><span class="v" id="tMelt"></span></div><div class="bar"><i id="tMeltBar"></i></div></div>
+      <div class="row"><span class="k">Served in</span><span class="v" id="tGlass"></span></div>
+    </div>
+    <h3>Function</h3>
+    <p id="tUse"></p>
+    <div id="tDrinks"></div>
+
+    <h3>Geometry</h3>
+    <div class="rows">
+      <div class="row"><span class="k">Pieces</span><span class="v" id="gN"></span></div>
+      <div class="row"><span class="k">Total ice volume</span><span class="v" id="gV"></span></div>
+      <div class="row"><span class="k">Total surface area</span><span class="v" id="gA"></span></div>
+      <div class="row"><span class="k">Surface-to-volume ratio</span><span class="v" id="gSV"></span></div>
+      <div class="row"><span class="k">Nucleation sites (edges / corners)</span><span class="v" id="gNuc"></span></div>
+    </div>
+
+    <h3>Melt simulation</h3>
+    <div class="ctrl">
+      <label>Time in glass <b id="mtOut">0 min</b></label>
+      <input type="range" id="mt" min="0" max="60" step="0.1" value="0">
+    </div>
+    <div class="rows">
+      <div class="row"><span class="k">Ice remaining</span><span class="v" id="mRem"></span></div>
+      <div class="row"><span class="k">Meltwater added</span><span class="v" id="mWater"></span></div>
+      <div class="row"><span class="k">Dilution</span><span class="v" id="mDil"></span></div>
+      <div class="row"><span class="k">Est. time to fully melt</span><span class="v" id="mFull"></span></div>
+    </div>
+    <div class="btns">
+      <button class="btn primary" id="mPlay">Play melt</button>
+      <button class="btn" id="mReset">Reset</button>
+    </div>
+    <label class="check"><input type="checkbox" id="autoRot" checked> Auto-rotate glass</label>
+    <p class="note">Melt model: a shape-preserving piece loses volume in proportion to its surface area (dV/dt ∝ −A), so its linear size shrinks at a rate set by its surface-to-volume ratio. Same constant applied to every ice type, for comparison.</p>
+  </aside>
+
+  <!-- ===== Panel: Freezing ===== -->
+  <aside id="panel-freeze">
+    <p class="eyebrow">Crystallography of Hexagonal Ice I<sub>h</sub></p>
+    <h2>Freezing Front</h2>
+    <div class="seg" style="margin-top:16px">
+      <button class="active" id="modeOmni">Omnidirectional</button>
+      <button id="modeDir">Directional</button>
+    </div>
+    <p id="modeInfo" style="margin-top:14px"></p>
+
+    <div class="ctrl">
+      <label>Freezing front velocity <b id="velOut">6.0 mm/h</b></label>
+      <input type="range" id="vel" min="0.5" max="12" step="0.5" value="6">
+    </div>
+    <div class="ctrl">
+      <label>Playback speed <b id="spdOut">0.4 h/s</b></label>
+      <input type="range" id="spd" min="0.1" max="4" step="0.1" value="0.4">
+    </div>
+    <label class="check" id="harvestWrap" style="display:none"><input type="checkbox" id="harvest" checked> Harvest at 80% frozen (discard cloudy bottom)</label>
+    <div class="btns">
+      <button class="btn primary" id="btnRun">Start</button>
+      <button class="btn" id="btnReset">Reset</button>
+    </div>
+
+    <h3>Live readout</h3>
+    <div class="rows">
+      <div class="row"><span class="k">Elapsed</span><span class="v" id="r_time">0.0 h</span></div>
+      <div class="row"><span class="k">Front travel</span><span class="v" id="r_front">0.0 mm</span></div>
+      <div class="row"><span class="k">Frozen fraction</span><span class="v" id="r_frozen">0 %</span></div>
+      <div class="row"><span class="k">Effective partition coeff. k<sub>eff</sub></span><span class="v" id="r_keff"></span></div>
+      <div class="row"><span class="k">Gas in remaining liquid (C/C₀)</span><span class="v" id="r_cg"></span></div>
+      <div class="row"><span class="k">TDS in remaining liquid (C/C₀)</span><span class="v" id="r_cm"></span></div>
+      <div class="row"><span class="k">Ice TDS vs. source water</span><span class="v" id="r_tds"></span></div>
+      <div class="row"><span class="k">TDS reduction in ice</span><span class="v" id="r_red"></span></div>
+      <div class="row"><span class="k">Trapped micro-voids</span><span class="v" id="r_voids"></span></div>
+    </div>
+    <h3>Concentration vs. frozen fraction</h3>
+    <canvas id="chart"></canvas>
+    <div class="chartleg"><span><span class="lnk" style="background:var(--text)"></span> Liquid gas C/C₀ (0–10)</span><span><span class="lnk"></span> Ice TDS % of source</span></div>
+
+    <h3>Zone refining in ice I<sub>h</sub></h3>
+    <p>Ice on Earth crystallizes as hexagonal ice I<sub>h</sub>. Its lattice has almost no room for foreign species, so the equilibrium partition coefficient for dissolved gases and mineral ions is extremely small:</p>
+    <table class="k">
+      <tr><td>Dissolved gases — O₂, N₂, CO₂</td><td>k &lt; 10<sup>−4</sup></td></tr>
+      <tr><td>Mineral ions — Ca²⁺, Mg²⁺, Na⁺</td><td>k &lt; 10<sup>−4</sup></td></tr>
+    </table>
+    <h3>Impurity rejection</h3>
+    <p>As water molecules lock into the hexagonal network, gases and minerals are always pushed ahead of the freezing front into the remaining liquid. Whether they escape or get trapped depends on how fast the front moves and where the liquid can go.</p>
+    <p class="note">Model: k<sub>eff</sub> = k₀ + (1 − k₀)·v²/(v² + v<sub>c</sub>²), with k₀ = 10⁻⁴ and v<sub>c</sub> = 6 mm/h — a simplified Burton–Prim–Slichter-type rise of trapping with front speed. The remaining liquid follows a Scheil mass balance. Gas forms visible micro-voids once the liquid at the front becomes supersaturated. This is a teaching model, not a quantitative prediction.</p>
+  </aside>
+
+  <!-- ===== Panel: Shaking vs Stirring ===== -->
+  <aside id="panel-mix">
+    <p class="eyebrow">Chilling &amp; Dilution Kinetics</p>
+    <h2>Shaking vs Stirring</h2>
+    <p style="margin-top:10px">Both techniques chill a drink the same way: by melting ice. <i>There is no chilling without dilution, and no dilution without chilling.</i> The difference is <b>speed</b> — shaking slams ice and liquid together so heat transfer is roughly an order of magnitude faster.</p>
+
+    <h3>Drink</h3>
+    <div class="seg" id="mixDrink">
+      <button data-d="daiquiri">Daiquiri</button><button class="active" data-d="manhattan">Manhattan</button><button data-d="negroni">Negroni</button>
+    </div>
+    <p id="mixDrinkInfo" style="margin-top:8px;font-size:12px"></p>
+    <h3>Ice</h3>
+    <div class="seg" id="mixIce">
+      <button class="active" data-t="-18">−18 °C freezer</button><button data-t="-5">−5 °C tempered</button><button data-t="0">0 °C wet</button>
+    </div>
+    <label class="check"><input type="checkbox" id="mixChill"> Pre-chilled shaker tin &amp; mixing glass</label>
+
+    <h3>Technique</h3>
+    <div class="ctrl"><label><span class="c-shake">Shake intensity</span><b id="shIntOut">Hard</b></label><input type="range" id="shInt" min="0.5" max="1.5" step="0.05" value="1"></div>
+    <div class="ctrl"><label><span class="c-shake">Shake time</span><b id="shTimeOut">12 s</b></label><input type="range" id="shTime" min="3" max="40" step="1" value="12"></div>
+    <div class="ctrl"><label><span class="c-stir">Stir speed</span><b id="stSpdOut">Standard</b></label><input type="range" id="stSpd" min="0.5" max="1.6" step="0.05" value="1"></div>
+    <div class="ctrl"><label><span class="c-stir">Stir time</span><b id="stTimeOut">30 s</b></label><input type="range" id="stTime" min="5" max="120" step="1" value="30"></div>
+    <div class="btns"><button class="btn" id="mixMatch">Stir until it matches the shake</button></div>
+
+    <h3>Result at current time</h3>
+    <table class="cmp">
+      <tr><th></th><th class="c-shake">Shaken</th><th class="c-stir">Stirred</th></tr>
+      <tr><td>Temperature</td><td id="cT0"></td><td id="cT1"></td></tr>
+      <tr><td>Dilution (water / original vol.)</td><td id="cD0"></td><td id="cD1"></td></tr>
+      <tr><td>Finished ABV</td><td id="cA0"></td><td id="cA1"></td></tr>
+      <tr><td>Ice melted</td><td id="cM0"></td><td id="cM1"></td></tr>
+      <tr><td>Drink volume</td><td id="cV0"></td><td id="cV1"></td></tr>
+      <tr><td>Time to reach within 1 °C of plateau</td><td id="cE0"></td><td id="cE1"></td></tr>
+    </table>
+
+    <h3>Temperature (°C)</h3>
+    <canvas class="mchart" id="chartT"></canvas>
+    <h3 style="margin-top:14px">Dilution (%)</h3>
+    <canvas class="mchart" id="chartD"></canvas>
+    <div class="chartleg"><span><span class="lnk"></span> Shaken</span><span><span class="lnk" style="background:var(--warm)"></span> Stirred</span><span>│ dashed = strained</span></div>
+
+    <h3>What the model shows</h3>
+    <p><b>Shaking</b> reaches near-equilibrium in about 10–15 s; shaking longer barely changes temperature or dilution. The drink ends close to its own freezing point (below 0 °C because of the ethanol and sugar) and is aerated — cloudy and textured.</p>
+    <p><b>Stirring</b> transfers heat far more gently, so the curve keeps sloping. Real-world stirs (20–45 s) stop well before equilibrium, giving a warmer, less diluted, crystal-clear drink. Matching a 12 s shake takes roughly 1.5–2 minutes of stirring.</p>
+    <p><b>Warm vessels</b> matter more for stirring: a room-temperature mixing glass (~500 g of glass) dumps heat into the drink, while a thin shaker tin holds little. <b>Wet ice</b> adds free surface water — dilution without chilling.</p>
+    <p class="note">Model: lumped energy balance per time step. Heat flow Q = h·A·(T<sub>drink</sub> − T<sub>fp</sub>), where T<sub>fp</sub> is the freezing point of the current ethanol–sugar–water mix and A shrinks as the cubes melt (A ∝ m<sup>2/3</sup>). Ice warms to T<sub>fp</sub>, then melts (334 J/g); meltwater joins the drink. The vessel and room exchange heat with the drink. h is calibrated so shaking plateaus in ~12 s and stirring needs ~2 min to match. Teaching model — real numbers depend on the cubes, the vessel and the bartender.</p>
+
+    <h3>References</h3>
+    <ol class="refs">
+      <li>Dave Arnold, <i>Liquid Intelligence: The Art and Science of the Perfect Cocktail</i>, W. W. Norton, 2014 — chapters on chilling, shaking and stirring ("no chilling without dilution"; shaken drinks reach equilibrium in ~10–15 s; stirring is a slower route to the same endpoint; typical finished strengths ≈ 21–29 % ABV stirred, ≈ 15–20 % ABV shaken).</li>
+      <li>Dave Arnold, <i>Cooking Issues</i> blog — shaking &amp; dilution experiments. <a href="https://www.cookingissues.com" target="_blank" rel="noopener">cookingissues.com</a></li>
+      <li>Difford's Guide — "Shaking cocktails": time to equilibrium and dilution. <a href="https://www.diffordsguide.com" target="_blank" rel="noopener">diffordsguide.com</a></li>
+      <li>Freezing points of ethanol–water solutions: <i>CRC Handbook of Chemistry and Physics</i>, "Concentrative properties of aqueous solutions". Latent heat of fusion of ice: 333.6 J/g.</li>
+    </ol>
+  </aside>
+</main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+/* ============================================================
+   Renderer / shared
+   ============================================================ */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+stage.prepend(renderer.domElement);
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+// Professional Studio Lighting Environment for Glassware & Ice Photography
+function makeStudioEnv(){
+  const sScene = new THREE.Scene();
+  sScene.background = new THREE.Color(0xf5f7fa);
+
+  // 1. Overhead primary softbox
+  const topLight = new THREE.Mesh(
+    new THREE.PlaneGeometry(16, 16),
+    new THREE.MeshBasicMaterial({ color:0xffffff })
+  );
+  topLight.position.set(0, 11, 0);
+  topLight.rotation.x = Math.PI/2;
+  sScene.add(topLight);
+
+  // 2. Left black flag (studio rim blocker - creates crisp dark crystal refraction on left edges)
+  const leftFlag = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 26),
+    new THREE.MeshBasicMaterial({ color:0x11161c })
+  );
+  leftFlag.position.set(-8.5, 6, 2.0);
+  leftFlag.rotation.y = Math.PI/2.7;
+  sScene.add(leftFlag);
+
+  // 3. Right black flag (studio rim blocker)
+  const rightFlag = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 26),
+    new THREE.MeshBasicMaterial({ color:0x11161c })
+  );
+  rightFlag.position.set(8.5, 6, 2.0);
+  rightFlag.rotation.y = -Math.PI/2.7;
+  sScene.add(rightFlag);
+
+  // 4. Rear back-glow kicker
+  const backLight = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 14),
+    new THREE.MeshBasicMaterial({ color:0xdce6ee })
+  );
+  backLight.position.set(0, 5, -12);
+  sScene.add(backLight);
+
+  // 5. Front fill
+  const frontFill = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10),
+    new THREE.MeshBasicMaterial({ color:0xffffff })
+  );
+  frontFill.position.set(0, 3, 14);
+  frontFill.rotation.y = Math.PI;
+  sScene.add(frontFill);
+
+  return pmrem.fromScene(sScene, 0.02).texture;
+}
+const envTex = makeStudioEnv();
+const envTexDark = makeStudioEnvDark();
+const BG = new THREE.Color(0xffffff);
+renderer.setClearColor(0xffffff, 1);
+
+// Dark studio: black cyclorama with bright softboxes (crisp rim highlights on ice & glass)
+function makeStudioEnvDark(){
+  const s = new THREE.Scene(); s.background = new THREE.Color(0x14171b);
+  const add = (w,h,color,pos,rot) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({ color, side:THREE.DoubleSide }));
+    m.position.set(...pos); m.rotation.set(...rot); s.add(m); };
+  add(14,14,0xffffff,[0,11,0],[Math.PI/2,0,0]);          // overhead softbox
+  add(3,20,0xcfdde6,[-9,6,1],[0,Math.PI/2.4,0]);          // left strip light
+  add(3,20,0xcfdde6,[9,6,1],[0,-Math.PI/2.4,0]);          // right strip light
+  add(12,10,0x39424c,[0,5,-12],[0,0,0]);                  // dim back panel
+  add(8,8,0x8a959f,[0,3,14],[0,Math.PI,0]);               // soft front fill
+  return pmrem.fromScene(s, 0.02).texture;
+}
+
+// Theme registry: every scene registers a hook that re-colours it for light / dark
+const themeHooks = [];
+const onTheme = fn => themeHooks.push(fn);
+let isDark = true;
+
+// Edge shading: blends the rim toward a tone (dark edges on a white set, luminous edges on a dark set)
+const fresnelMats = [];
+function addFresnel(mat, edgeColor, strength, power, alphaBoost=0, darkEdge=0xc9dde8){
+  const c = new THREE.Color(edgeColor);
+  mat.userData.edge = c; mat.userData.edgeLight = c.clone(); mat.userData.edgeDark = new THREE.Color(darkEdge);
+  fresnelMats.push(mat);
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.edgeColor = { value: c };
+    shader.fragmentShader = 'uniform vec3 edgeColor;\n' + shader.fragmentShader.replace('#include <opaque_fragment>',
+`float fres = pow(1.0 - clamp(abs(dot(normal, normalize(vViewPosition))), 0.0, 1.0), ${power.toFixed(2)});
+outgoingLight = mix(outgoingLight, edgeColor, clamp(fres * ${strength.toFixed(2)}, 0.0, 1.0));
+diffuseColor.a = clamp(diffuseColor.a + fres * ${alphaBoost.toFixed(2)}, 0.0, 1.0);
+#include <opaque_fragment>`);
+  };
+  mat.customProgramCacheKey = () => `edge_${edgeColor}_${strength}_${power}_${alphaBoost}`;
+  return mat;
+}
+function canvasTex(draw, size=256){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const dotTex = canvasTex((g,s)=>{
+  const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.35,'rgba(255,255,255,.75)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+}, 64);
+// Bubble sprite: light centre with a soft grey rim (reads on a white background)
+const bubbleTex = canvasTex((g,s)=>{
+  const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,'rgba(255,255,255,0.95)'); gr.addColorStop(0.55,'rgba(225,232,236,0.95)');
+  gr.addColorStop(0.82,'rgba(140,152,162,0.9)'); gr.addColorStop(1,'rgba(140,152,162,0)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+}, 64);
+// Tileable multi-octave value noise -> normal map (subtle melt ripples / surface irregularity of real ice)
+function makeIceNormal(size=512, octaves=5, base=4, strength=2.2){
+  const H = new Float32Array(size*size);
+  let amp = 1, cells = base;
+  for (let o=0;o<octaves;o++){
+    const grid = new Float32Array(cells*cells).map(()=>Math.random());
+    const at = (x,y)=>grid[((y%cells+cells)%cells)*cells + ((x%cells+cells)%cells)];
+    for (let y=0;y<size;y++) for (let x=0;x<size;x++){
+      const fx = x/size*cells, fy = y/size*cells, ix = Math.floor(fx), iy = Math.floor(fy);
+      let tx = fx-ix, ty = fy-iy; tx = tx*tx*(3-2*tx); ty = ty*ty*(3-2*ty);
+      const v = (at(ix,iy)*(1-tx)+at(ix+1,iy)*tx)*(1-ty) + (at(ix,iy+1)*(1-tx)+at(ix+1,iy+1)*tx)*ty;
+      H[y*size+x] += v*amp;
+    }
+    amp *= 0.5; cells *= 2;
+  }
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), img = g.createImageData(size,size);
+  const h = (x,y)=>H[((y+size)%size)*size + ((x+size)%size)];
+  for (let y=0;y<size;y++) for (let x=0;x<size;x++){
+    let nx = (h(x-1,y)-h(x+1,y))*strength, ny = (h(x,y-1)-h(x,y+1))*strength, nz = 1;
+    const l = Math.hypot(nx,ny,nz); nx/=l; ny/=l; nz/=l;
+    const i = (y*size+x)*4;
+    img.data[i] = (nx*0.5+0.5)*255; img.data[i+1] = (ny*0.5+0.5)*255; img.data[i+2] = (nz*0.5+0.5)*255; img.data[i+3] = 255;
+  }
+  g.putImageData(img,0,0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+}
+const iceNormal = makeIceNormal(512, 5, 4, 2.0);
+const pebbleNormal = makeIceNormal(256, 4, 6, 5.0);
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const smoothstep = (a,b,x)=>{ const t = Math.min(1, Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
+
+/* ============================================================
+   TAB 1 — Ice in the glass
+   ============================================================ */
+const sceneA = new THREE.Scene(); sceneA.background = BG; sceneA.environment = envTex;
+const camA = new THREE.PerspectiveCamera(32, 1, 0.8, 300); // 0.8 near plane gives ~8x finer depth resolution at base
+camA.position.set(22, 16, 28);
+const ctlA = new OrbitControls(camA, renderer.domElement);
+ctlA.enableDamping = true; ctlA.minDistance = 12; ctlA.maxDistance = 70;
+ctlA.autoRotate = true; ctlA.autoRotateSpeed = 0.8; ctlA.maxPolarAngle = Math.PI*0.62;
+
+{
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(8, 18, 10); sceneA.add(key);
+  const rim = new THREE.DirectionalLight(0xdbe9f1, 1.4); rim.position.set(-10, 8, -12); sceneA.add(rim);
+  sceneA.add(new THREE.AmbientLight(0xffffff, 0.25));
+  // Opaque floor: sunk slightly to eliminate Z-fighting with glass base and shadows
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(220, 64), new THREE.MeshBasicMaterial({ color:0xffffff, toneMapped:false }));
+  floor.rotation.x = -Math.PI/2; floor.position.y = -0.01; sceneA.add(floor);
+  const grid = new THREE.PolarGridHelper(26, 12, 6, 96, 0xdcdfe3, 0xdcdfe3); grid.position.y = -0.004;
+  grid.material.toneMapped = false; grid.material.vertexColors = false; sceneA.add(grid);
+  onTheme(dark => {
+    floor.material.color.set(dark ? 0x0e1013 : 0xffffff);
+    grid.material.color.set(dark ? 0x1f2328 : 0xdcdfe3);
+    sceneA.environment = dark ? envTexDark : envTex;
+    key.intensity = dark ? 1.2 : 1.6;
+  });
+}
+const shadowTex = canvasTex((g,s)=>{
+  const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,'rgba(20,30,40,0.32)'); gr.addColorStop(0.5,'rgba(20,30,40,0.12)'); gr.addColorStop(1,'rgba(20,30,40,0)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+});
+
+// Materials
+// 1. Heavy crystal bar glassware (transparent with crystal rim refraction and studio glints)
+const glassMat = addFresnel(new THREE.MeshPhysicalMaterial({
+  color:0xffffff, roughness:0.02, metalness:0, transparent:true, opacity:0.12,
+  envMapIntensity:2.5, clearcoat:1.0, clearcoatRoughness:0.01,
+  side:THREE.FrontSide, depthWrite:false
+}), 0x222a30, 0.65, 3.0, 0.4);
+
+// 2. Clear cocktail ice: crystal clarity, wet specular sheen, crisp edge reflections
+const iceMat = addFresnel(new THREE.MeshPhysicalMaterial({
+  color:0xeef7fc, metalness:0.02, roughness:0.03,
+  transparent:true, opacity:0.32,
+  specularIntensity:1.8, specularColor:new THREE.Color(0xffffff),
+  clearcoat:1.0, clearcoatRoughness:0.015, envMapIntensity:2.6,
+  normalMap:iceNormal, normalScale:new THREE.Vector2(0.14, 0.14),
+  depthWrite:false
+}), 0x2d4252, 0.65, 2.5, 0.35);
+
+// 3. Pebble ice: frosty, crunchy translucent nuggets
+const pebbleMat = addFresnel(new THREE.MeshPhysicalMaterial({
+  color:0xf4f9fc, metalness:0, roughness:0.25, transparent:true, opacity:0.65,
+  envMapIntensity:2.0, flatShading:true, normalMap:pebbleNormal, normalScale:new THREE.Vector2(0.35, 0.35)
+}), 0x485f70, 0.5, 2.0, 0.25);
+onTheme(dark => {
+  iceMat.opacity = dark ? 0.2 : 0.32;
+  glassMat.opacity = dark ? 0.07 : 0.12;
+  pebbleMat.opacity = dark ? 0.5 : 0.65;
+});
+
+// Internal micro-bubble plume texture for carved bar ice
+const veilTex = canvasTex((g,s)=>{
+  const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,'rgba(255,255,255,0.95)'); gr.addColorStop(0.3,'rgba(240,248,255,0.7)');
+  gr.addColorStop(0.7,'rgba(200,225,245,0.25)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+}, 64);
+function createInternalIceVeil(width, height, depth){
+  const N = 85;
+  const pos = new Float32Array(N*3);
+  for (let i=0;i<N;i++){
+    // Clustered slightly along the core spine
+    const r = Math.pow(Math.random(), 1.8) * Math.min(width, depth) * 0.22;
+    const a = Math.random() * Math.PI * 2;
+    pos[i*3] = Math.cos(a) * r;
+    pos[i*3+1] = (Math.random() - 0.5) * height * 0.72;
+    pos[i*3+2] = Math.sin(a) * r;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    size:0.075, map:veilTex, transparent:true, opacity:0.45,
+    depthWrite:false, blending:THREE.AdditiveBlending, color:0xffffff
+  });
+  return new THREE.Points(geo, mat);
+}
+
+// Glass definitions (cm)
+const GLASSES = {
+  rocks:   { name:'Rocks glass',              rIn:4.3, h:9.0,  base:1.0, wall:0.28 },
+  highball:{ name:'Highball / Collins glass', rIn:3.0, h:15.0, base:1.0, wall:0.22 },
+  mixing:  { name:'Mixing glass',             rIn:4.6, h:12.5, base:1.3, wall:0.32 },
+};
+function glassGeometry(g){
+  const rOut = g.rIn + g.wall, h = g.h, b = g.base, V = (x,y)=>new THREE.Vector2(x,y);
+  // Realistic bar glassware punt recess: concave dimple in the center (y=0.12), foot ring touches at y=0.03.
+  // Completely eliminates planar Z-fighting against the floor (y=-0.01) and shadow (y=0.005).
+  const pts = [
+    V(0.001, 0.12),
+    V(rOut*0.45, 0.09),
+    V(rOut-0.42, 0.03),
+    V(rOut-0.18, 0.03),
+    V(rOut-0.04, 0.15),
+    V(rOut, 0.45),
+    V(rOut, h),
+    V(rOut-g.wall*0.25, h+0.08),
+    V(g.rIn+g.wall*0.25, h+0.08),
+    V(g.rIn, h),
+    V(g.rIn, b+0.35),
+    V(g.rIn-0.1, b+0.1),
+    V(g.rIn-0.4, b),
+    V(0.001, b)
+  ];
+  return new THREE.LatheGeometry(pts, 128);
+}
+
+// Ice type data
+const IN = 2.54, H_MELT = 0.0317; // cm per minute (surface recession constant)
+const TYPES = {
+  spear:{ label:'Collins Spear', glass:'highball', vol:200, liquid:0xcce4ee, carbonated:true, carbRate:0.25,
+    size:'Long clear column ≈ 1.25 × 5 in', melt:'Slow · preserves carbonation', meltLevel:0.3, nuc:'Low — 12 / 8',
+    use:'Designed specifically for Highball and Collins glasses. A single long column has far fewer corners and edges (nucleation sites) than a glass full of cubes, so CO₂ bubbles do not break out of solution as quickly — the drink stays fizzy longer.',
+    drinks:['Gin & Tonic','Whisky Highball','Tom Collins'] },
+  sphere:{ label:'Ice Sphere', glass:'rocks', vol:75, liquid:0xdb7f22, carbonated:false,
+    size:'Clear sphere, 2–2.5 in diameter', melt:'Slowest', meltLevel:0.1, nuc:'None — 0 / 0',
+    use:'The geometry with the smallest surface area for its volume. Minimum contact with the liquid means minimum melting, so dilution does not interfere with the flavor too quickly.',
+    drinks:['Whisky on the Rocks','Spirit served neat over ice'] },
+  pebble:{ label:'Pebble Ice', glass:'highball', vol:120, liquid:0x5e9b58, carbonated:true, carbRate:1.0,
+    size:'Crushed ice or small porous nuggets', melt:'Very fast', meltLevel:0.92, nuc:'Very high — hundreds',
+    use:'Flash chilling: the enormous surface area drops the drink to sub-zero temperature almost instantly, while the high meltwater dilution softens the strength of the alcohol.',
+    drinks:['Mint Julep','Mojito','Mai Tai','Tiki drinks'] },
+  king:{ label:'King Cube', glass:'rocks', vol:75, liquid:0xb53d12, carbonated:false,
+    size:'Large clear cube, 2 × 2 in', melt:'Very slow', meltLevel:0.2, nuc:'Low — 12 / 8',
+    use:'Served in a Rocks glass for spirit-forward cocktails that are meant to be sipped slowly. One large block chills steadily while diluting very little.',
+    drinks:['Old Fashioned','Negroni','Boulevardier'] },
+  kolddraft:{ label:'Standard Cube', sub:'Kold-Draft', glass:'mixing', vol:90, liquid:0x9c3818, carbonated:false,
+    size:'Solid dense cube ≈ 1.25 × 1.25 in', melt:'Medium · balanced', meltLevel:0.5, nuc:'Moderate — 84 / 56',
+    use:'The all-purpose workhorse. Used for shaking in a tin and stirring in a mixing glass because it gives the best balance between chilling and dilution.',
+    drinks:['Shaken cocktails','Stirred cocktails','Daiquiri','Manhattan'] },
+};
+const ORDER = ['spear','sphere','pebble','king','kolddraft'];
+
+const pieceT = (V, A) => 3*Math.cbrt(V) / (H_MELT * (A / Math.pow(V, 2/3)));
+
+// Pebble geometry: faceted, jittered icosahedron (deterministic jitter keeps seams closed)
+const pebbleGeo = (() => {
+  const g = new THREE.IcosahedronGeometry(1, 1);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  for (let i=0;i<p.count;i++){
+    v.fromBufferAttribute(p,i).normalize();
+    const n = 1 + 0.16*Math.sin(v.x*5.1+v.y*2.3) + 0.12*Math.sin(v.z*6.7-v.x*3.1) + 0.08*Math.cos(v.y*7.9+v.z*1.7);
+    v.multiplyScalar(n); p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals(); return g;
+})();
+
+let drink = null; // current drink state
+const drinkGroup = new THREE.Group(); sceneA.add(drinkGroup);
+
+function disposeGroup(g){
+  g.traverse(o=>{ if (o.geometry && o.geometry !== pebbleGeo) o.geometry.dispose(); });
+  while (g.children.length) g.remove(g.children[0]);
+}
+
+function buildDrink(key){
+  disposeGroup(drinkGroup);
+  const T = TYPES[key], G = GLASSES[T.glass];
+  const pieces = []; let inst = null, nucl = 0;
+
+  // glass + shadow
+  const glass = new THREE.Mesh(glassGeometry(G), glassMat); glass.renderOrder = 3; drinkGroup.add(glass);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({ map:shadowTex, transparent:true, depthWrite:false }));
+  sh.rotation.x = -Math.PI/2; sh.position.y = 0.005; sh.scale.setScalar((G.rIn+G.wall)*3.2); drinkGroup.add(sh);
+
+  const addMesh = (geo, pos, rotY, V, A, rotX=0, rotZ=0, bW=1, bH=1, bD=1) => {
+    const m = new THREE.Mesh(geo, iceMat); m.renderOrder = 2;
+    m.position.copy(pos); m.rotation.set(rotX, rotY, rotZ);
+    // Add internal crystal micro-veils inside clear ice
+    const veil = createInternalIceVeil(bW, bH, bD);
+    veil.renderOrder = 3;
+    m.add(veil);
+    drinkGroup.add(m);
+    pieces.push({ mesh:m, pos0:pos.clone(), scale0:new THREE.Vector3(1,1,1), V0:V, A0:A, T:pieceT(V,A) });
+  };
+
+  if (key === 'sphere'){
+    const d = 2.25*IN, r = d/2;
+    addMesh(new THREE.SphereGeometry(r, 64, 48), new THREE.Vector3(0, G.base + r, 0), 0, 4/3*Math.PI*r**3, 4*Math.PI*r*r, 0, 0, d*0.7, d*0.7, d*0.7);
+  } else if (key === 'king'){
+    const a = 2*IN;
+    addMesh(new RoundedBoxGeometry(a,a,a,5,0.35), new THREE.Vector3(0, G.base + a/2, 0), 0.35, a**3, 6*a*a, 0, 0, a, a, a);
+  } else if (key === 'spear'){
+    const a = 1.25*IN, h = 5*IN;
+    addMesh(new RoundedBoxGeometry(a,h,a,4,0.25), new THREE.Vector3(0.15, G.base + h/2, -0.1), 0.6, a*a*h, 2*a*a + 4*a*h, 0, 0, a, h, a);
+  } else if (key === 'kolddraft'){
+    const a = 1.25*IN, geo = new RoundedBoxGeometry(a,a,a,4,0.22), R = 2.05;
+    const layout = [];
+    for (let i=0;i<3;i++) layout.push([R, i*2*Math.PI/3, 0]);
+    for (let i=0;i<3;i++) layout.push([R, i*2*Math.PI/3 + Math.PI/3, 1]);
+    layout.push([0.2, 0, 2]);
+    layout.forEach(([rr, ang, lay], i) => {
+      const pos = new THREE.Vector3(Math.cos(ang)*rr, G.base + a/2 + lay*(a*0.98), Math.sin(ang)*rr);
+      addMesh(geo, pos, -ang + (i%2?0.12:-0.1), a**3, 6*a*a, (Math.random()-.5)*0.25, (Math.random()-.5)*0.25, a, a, a);
+    });
+  } else if (key === 'pebble'){
+    const placed = [], fillTop = G.base + 13.2;
+    for (let tries=0; tries<9000 && placed.length<220; tries++){
+      const r = 0.5 + Math.random()*0.28;
+      const rad = Math.sqrt(Math.random()) * (G.rIn - r*1.15);
+      const ang = Math.random()*Math.PI*2;
+      const y = G.base + r*0.95 + Math.pow(Math.random(), 0.8)*(fillTop - G.base - r);
+      const p = new THREE.Vector3(Math.cos(ang)*rad, y, Math.sin(ang)*rad);
+      if (placed.every(q => q.p.distanceTo(p) > (q.r + r)*0.86)) placed.push({ p, r });
+    }
+    inst = new THREE.InstancedMesh(pebbleGeo, pebbleMat, placed.length); inst.renderOrder = 1;
+    drinkGroup.add(inst);
+    placed.forEach((q, i) => {
+      const s = new THREE.Vector3(q.r*(0.85+Math.random()*0.3), q.r*(0.75+Math.random()*0.3), q.r*(0.85+Math.random()*0.3));
+      const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random()*6, Math.random()*6, Math.random()*6));
+      const V = 4/3*Math.PI*s.x*s.y*s.z, A = 4*Math.PI*Math.pow(s.x*s.y*s.z, 2/3)*1.35;
+      pieces.push({ inst:i, pos0:q.p.clone(), quat, scale0:s, V0:V, A0:A, T:pieceT(V,A) });
+    });
+  }
+
+  // liquid with rich cocktail color, translucency and glowing meniscus
+  const liquid = new THREE.Mesh(new THREE.CylinderGeometry(G.rIn-0.05, G.rIn-0.06, 1, 96),
+    new THREE.MeshPhysicalMaterial({
+      color:T.liquid, roughness:0.05, metalness:0,
+      transparent:true, opacity:0.76, depthWrite:false,
+      envMapIntensity:1.8, clearcoat:0.9, clearcoatRoughness:0.02
+    }));
+  liquid.renderOrder = 1; drinkGroup.add(liquid);
+
+  // carbonation bubbles
+  let bubbles = null;
+  if (T.carbonated){
+    const N = 420, pos = new Float32Array(N*3), spd = new Float32Array(N);
+    for (let i=0;i<N;i++){
+      const r = Math.sqrt(Math.random())*(G.rIn-0.25), a = Math.random()*6.283;
+      pos[i*3] = Math.cos(a)*r; pos[i*3+1] = G.base + Math.random()*10; pos[i*3+2] = Math.sin(a)*r;
+      spd[i] = 1.5 + Math.random()*2.5;
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size:0.1, map:bubbleTex, transparent:true, opacity:0.9, depthWrite:false, color:0xffffff, toneMapped:false }));
+    pts.renderOrder = 4; drinkGroup.add(pts);
+    geo.setDrawRange(0, Math.round(N*T.carbRate));
+    bubbles = { pts, pos, spd, N };
+  }
+
+  const V0 = pieces.reduce((s,p)=>s+p.V0,0), A0 = pieces.reduce((s,p)=>s+p.A0,0);
+  drink = { key, T, G, pieces, inst, liquid, bubbles, V0, A0, liqH: 0, maxT: Math.max(...pieces.map(p=>p.T)) };
+
+  // camera framing
+  ctlA.target.set(0, G.h*0.45, 0);
+  const dir = camA.position.clone().sub(ctlA.target).normalize();
+  camA.position.copy(ctlA.target).add(dir.multiplyScalar(G.h*1.9 + 14));
+
+  // panel text
+  const $ = id => document.getElementById(id);
+  $('tName').innerHTML = T.label + (T.sub ? `<small>${T.sub}</small>` : '');
+  $('ovName').textContent = T.label + (T.sub ? ` (${T.sub})` : '');
+  $('ovGlass').textContent = G.name;
+  $('tSize').textContent = T.size; $('tMelt').textContent = T.melt; $('tMeltBar').style.width = (T.meltLevel*100)+'%';
+  $('tGlass').textContent = G.name; $('tUse').textContent = T.use;
+  $('tDrinks').innerHTML = T.drinks.map(d=>`<span class="tag">${d}</span>`).join('');
+  $('gN').textContent = pieces.length;
+  $('gV').textContent = V0.toFixed(0) + ' cm³';
+  $('gA').textContent = A0.toFixed(0) + ' cm²';
+  $('gSV').textContent = (A0/V0).toFixed(2) + ' cm⁻¹';
+  $('gNuc').textContent = T.nuc;
+  $('mFull').textContent = '≈ ' + drink.maxT.toFixed(0) + ' min';
+  applyMelt();
+}
+
+const dummy = new THREE.Object3D();
+let meltT = 0, meltPlaying = false;
+function applyMelt(){
+  if (!drink) return;
+  const { G, T, pieces, inst } = drink;
+  let Vice = 0;
+  for (const p of pieces){
+    const lam = Math.max(0, 1 - meltT/p.T);
+    Vice += p.V0 * lam**3;
+    const y = G.base + (p.pos0.y - G.base) * lam;
+    const s = Math.max(lam, 1e-4);
+    if (p.mesh){
+      p.mesh.position.set(p.pos0.x, y, p.pos0.z);
+      p.mesh.scale.setScalar(s); p.mesh.visible = lam > 0.01;
+    } else {
+      dummy.position.set(p.pos0.x, y, p.pos0.z); dummy.quaternion.copy(p.quat);
+      dummy.scale.copy(p.scale0).multiplyScalar(s); dummy.updateMatrix();
+      inst.setMatrixAt(p.inst, dummy.matrix);
+    }
+  }
+  if (inst) inst.instanceMatrix.needsUpdate = true;
+  const melted = (drink.V0 - Vice) * 0.917;        // ml of meltwater
+  const liqV = T.vol + melted;
+  const h = Math.min(G.h - 0.5, (liqV + 0.9*Vice) / (Math.PI * G.rIn * G.rIn));
+  drink.liqH = h;
+  drink.liquid.scale.y = h; drink.liquid.position.y = G.base + 0.02 + h/2;
+  const $ = id => document.getElementById(id);
+  $('mtOut').textContent = meltT.toFixed(0) + ' min';
+  $('mRem').textContent = (Vice/drink.V0*100).toFixed(0) + ' %';
+  $('mWater').textContent = melted.toFixed(0) + ' ml';
+  $('mDil').textContent = (melted/liqV*100).toFixed(0) + ' %';
+}
+
+function updateBubbles(dt){
+  const b = drink?.bubbles; if (!b) return;
+  const { G } = drink, top = G.base + drink.liqH - 0.05;
+  for (let i=0;i<b.N;i++){
+    let y = b.pos[i*3+1] + b.spd[i]*dt;
+    b.pos[i*3] += (Math.random()-.5)*0.02; b.pos[i*3+2] += (Math.random()-.5)*0.02;
+    if (y > top){
+      y = G.base + Math.random()*Math.min(3, drink.liqH);
+      const r = Math.sqrt(Math.random())*(G.rIn-0.25), a = Math.random()*6.283;
+      b.pos[i*3] = Math.cos(a)*r; b.pos[i*3+2] = Math.sin(a)*r;
+    }
+    b.pos[i*3+1] = y;
+  }
+  b.pts.geometry.attributes.position.needsUpdate = true;
+}
+
+// picker
+const picker = document.getElementById('picker');
+ORDER.forEach(k => {
+  const b = document.createElement('button'); b.textContent = TYPES[k].label; b.dataset.k = k;
+  b.onclick = () => { picker.querySelectorAll('button').forEach(x=>x.classList.toggle('active', x===b)); buildDrink(k); };
+  picker.appendChild(b);
+});
+picker.firstChild.classList.add('active');
+document.getElementById('mt').oninput = e => { meltT = +e.target.value; applyMelt(); };
+document.getElementById('mPlay').onclick = e => { meltPlaying = !meltPlaying; e.target.textContent = meltPlaying ? 'Pause' : 'Play melt'; if (meltT >= 60) meltT = 0; };
+document.getElementById('mReset').onclick = () => { meltT = 0; meltPlaying = false; document.getElementById('mPlay').textContent = 'Play melt'; document.getElementById('mt').value = 0; applyMelt(); };
+document.getElementById('autoRot').onchange = e => ctlA.autoRotate = e.target.checked;
+buildDrink('spear');
+
+/* ============================================================
+   TAB 2 — Freezing simulation
+   ============================================================ */
+const sceneB = new THREE.Scene(); sceneB.background = BG; sceneB.environment = envTex;
+const camB = new THREE.PerspectiveCamera(32, 1, 0.1, 200); camB.position.set(11, 7.5, 13);
+const ctlB = new OrbitControls(camB, renderer.domElement);
+ctlB.enableDamping = true; ctlB.minDistance = 8; ctlB.maxDistance = 40; ctlB.enabled = false;
+ctlB.autoRotate = false;
+sceneB.add(new THREE.AmbientLight(0xffffff, 0.4));
+{ const l = new THREE.DirectionalLight(0xffffff, 1.6); l.position.set(6,10,8); sceneB.add(l); }
+
+const L = 6, HALF = 3, VT = L*L*L;   // 1 unit = 10 mm
+const unitBox = new THREE.BoxGeometry(1,1,1);
+const iceMatB = addFresnel(new THREE.MeshPhysicalMaterial({
+  color:0xffffff, roughness:0.04, transmission:0.88, thickness:2.8, ior:1.31,
+  attenuationColor:new THREE.Color(0xd4eefc), attenuationDistance:14,
+  specularIntensity:1.5, clearcoat:0.9, clearcoatRoughness:0.02,
+  depthWrite:false, envMapIntensity:2.2, normalMap:iceNormal, normalScale:new THREE.Vector2(0.1, 0.1)
+}), 0x486275, 0.52, 2.7, 0.22);
+const waterMatB = new THREE.MeshPhysicalMaterial({ color:0x8dbad3, roughness:0.1, transparent:true, opacity:0.18, depthWrite:false, envMapIntensity:1.2 });
+const iceBox = new THREE.Mesh(unitBox, iceMatB); iceBox.renderOrder = 2;
+const liqBox = new THREE.Mesh(unitBox, waterMatB); liqBox.renderOrder = 1;
+const frontEdges = new THREE.LineSegments(new THREE.EdgesGeometry(unitBox), new THREE.LineBasicMaterial({ color:0x3f7fa0, transparent:true, opacity:0.95 }));
+const outerEdges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L,L,L)), new THREE.LineBasicMaterial({ color:0xb4bcc4 }));
+const frontPlane = new THREE.Mesh(new THREE.PlaneGeometry(L,L), new THREE.MeshBasicMaterial({ color:0x4f86a3, transparent:true, opacity:0.08, side:THREE.DoubleSide, depthWrite:false }));
+frontPlane.rotation.x = -Math.PI/2;
+sceneB.add(liqBox, iceBox, frontEdges, outerEdges, frontPlane);
+const gridB = new THREE.PolarGridHelper(14, 6, 6, 64, 0xebedef, 0xebedef);
+gridB.material.toneMapped = false; gridB.material.vertexColors = false; gridB.position.y = -HALF - 0.9; sceneB.add(gridB);
+
+// insulation shell (directional mode)
+const insul = new THREE.Group();
+const insulMat = new THREE.MeshStandardMaterial({ color:0xd3d8dd, roughness:0.9, transparent:true, opacity:0.55, depthWrite:false });
+{
+  const m = insulMat;
+  const t = 0.35, gap = 0.08, o = HALF + gap + t/2, len = L + 2*(gap+t);
+  [[o,0,0,t,L+gap,len],[-o,0,0,t,L+gap,len],[0,0,o,len,L+gap,t],[0,0,-o,len,L+gap,t],[0,-o,0,len,t,len]].forEach(([x,y,z,sx,sy,sz])=>{
+    const b = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), m); b.position.set(x, y - (x||z ? gap/2 : 0), z); b.renderOrder = 0; insul.add(b);
+  });
+}
+sceneB.add(insul);
+
+// heat-flow arrows
+const arrowsOmni = new THREE.Group(), arrowsDir = new THREE.Group();
+const mkArrow = (dir, origin, grp) => grp.add(new THREE.ArrowHelper(dir.normalize(), origin, 1.3, 0xa3abb3, 0.3, 0.16));
+[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]].forEach(d => { const v = new THREE.Vector3(...d); mkArrow(v.clone(), v.clone().multiplyScalar(HALF+0.3), arrowsOmni); });
+[[-1.6,0,-1.6],[1.6,0,-1.6],[-1.6,0,1.6],[1.6,0,1.6],[0,0,0]].forEach(([x,,z]) => mkArrow(new THREE.Vector3(0,1,0), new THREE.Vector3(x, HALF+0.3, z), arrowsDir));
+sceneB.add(arrowsOmni, arrowsDir);
+
+// cracks (thermal stress)
+const crackMat = new THREE.LineBasicMaterial({ color:0x5c6670, transparent:true, opacity:0 });
+const cracks = new THREE.LineSegments(new THREE.BufferGeometry(), crackMat); sceneB.add(cracks);
+function genCracks(){
+  const segs = [];
+  for (let i=0;i<11;i++){
+    let p = new THREE.Vector3((Math.random()-.5)*0.8,(Math.random()-.5)*0.8,(Math.random()-.5)*0.8);
+    let d = new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize();
+    for (let s=0;s<12;s++){
+      d.add(new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).multiplyScalar(0.7)).normalize();
+      const q = p.clone().add(d.clone().multiplyScalar(0.28 + Math.random()*0.2));
+      if (Math.max(Math.abs(q.x),Math.abs(q.y),Math.abs(q.z)) > HALF*0.97) break;
+      segs.push(p.x,p.y,p.z,q.x,q.y,q.z);
+      if (Math.random()<0.2){ // branch
+        const b = q.clone().add(new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).multiplyScalar(0.5));
+        if (Math.max(Math.abs(b.x),Math.abs(b.y),Math.abs(b.z)) < HALF*0.97) segs.push(q.x,q.y,q.z,b.x,b.y,b.z);
+      }
+      p = q;
+    }
+  }
+  cracks.geometry.dispose();
+  cracks.geometry = new THREE.BufferGeometry(); cracks.geometry.setAttribute('position', new THREE.Float32BufferAttribute(segs, 3));
+}
+
+// particles
+const N = 3600;
+const fpos = new Float32Array(N*3), fcol = new Float32Array(N*3), falpha = new Float32Array(N);
+const ftype = new Uint8Array(N), fstate = new Uint8Array(N); // state: 0 free, 1 in lattice (invisible), 2 micro-void/inclusion
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(fpos, 3));
+pGeo.setAttribute('aColor', new THREE.BufferAttribute(fcol, 3));
+pGeo.setAttribute('aAlpha', new THREE.BufferAttribute(falpha, 1));
+// Bubble-style point shader (per-particle colour + alpha, grey rim so particles read on white)
+const ptsMat = new THREE.ShaderMaterial({
+  uniforms:{ size:{ value:0.12 }, scale:{ value:500 } },
+  vertexShader:`attribute vec3 aColor; attribute float aAlpha; uniform float size; uniform float scale;
+    varying vec3 vC; varying float vA;
+    void main(){ vC = aColor; vA = aAlpha; vec4 mv = modelViewMatrix * vec4(position,1.0);
+      gl_PointSize = size * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
+  fragmentShader:`varying vec3 vC; varying float vA;
+    void main(){ float d = length(gl_PointCoord - 0.5) * 2.0; if (d > 1.0 || vA < 0.01) discard;
+      float rim = smoothstep(0.45, 0.95, d);
+      gl_FragColor = vec4(mix(vC, vC * 0.6, rim), vA * (1.0 - smoothstep(0.85, 1.0, d))); }`,
+  transparent:true, depthWrite:false
+});
+const pts = new THREE.Points(pGeo, ptsMat);
+pts.renderOrder = 5; sceneB.add(pts);
+const COL_LIGHT = [
+  [[0.62,0.66,0.70],[0.36,0.58,0.71]],   // free
+  [[1,1,1],[1,1,1]],                     // incorporated in lattice (dissolved, invisible)
+  [[0.93,0.95,0.97],[0.80,0.89,0.95]],   // void / inclusion (milky, scatters light)
+];
+const COL_DARK = [
+  [[0.42,0.46,0.50],[0.28,0.45,0.56]],
+  [[0,0,0],[0,0,0]],
+  [[0.95,0.97,1.0],[0.70,0.86,0.96]],
+];
+let COL = COL_DARK;
+const ALPHA = [0.9, 0.0, 0.95];
+onTheme(dark => {
+  COL = dark ? COL_DARK : COL_LIGHT;
+  ptsMat.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending; ptsMat.needsUpdate = true;
+  sceneB.environment = dark ? envTexDark : envTex;
+  gridB.material.color.set(dark ? 0x1d2126 : 0xebedef);
+  outerEdges.material.color.set(dark ? 0x444c55 : 0xb4bcc4);
+  frontEdges.material.color.set(dark ? 0x9cc6db : 0x3f7fa0);
+  frontPlane.material.color.set(dark ? 0x9cc6db : 0x4f86a3);
+  insulMat.color.set(dark ? 0x2a3037 : 0xd3d8dd);
+  [...arrowsOmni.children, ...arrowsDir.children].forEach(a => a.setColor(dark ? 0x5d6670 : 0xa3abb3));
+  crackMat.color.set(dark ? 0xffffff : 0x5c6670);
+  waterMatB.color.set(dark ? 0x3f6e8a : 0x8dbad3);
+  if (typeof updateFreezeVisuals === 'function' && sim) { updateFreezeVisuals(); drawChart(); }
+});
+
+const sim = { mode:'omni', v:6, speed:0.4, d:0, t:0, running:false, done:false, harvested:false,
+              nGas:0, nMin:0, freeGas:0, freeMin:0, trapMin:0, voids:0, history:[], cg:1, cm:1, tds:0 };
+const K0 = 1e-4, VC = 6;
+const keff = v => K0 + (1-K0)*(v*v)/(v*v + VC*VC);
+const expo = m => -Math.log(1 - Math.random()) * m;
+
+function liquidVolume(d){
+  if (sim.mode === 'omni'){ const h = Math.max(0, HALF - d); return 8*h*h*h; }
+  return L*L*Math.max(0, L - d);
+}
+
+function resetSim(){
+  Object.assign(sim, { d:0, t:0, running:false, done:false, harvested:false, trapMin:0, voids:0, history:[], cg:1, cm:1, tds:0 });
+  sim.nGas = sim.nMin = 0;
+  for (let i=0;i<N;i++){
+    fpos[i*3] = (Math.random()-.5)*L*0.98; fpos[i*3+1] = (Math.random()-.5)*L*0.98; fpos[i*3+2] = (Math.random()-.5)*L*0.98;
+    ftype[i] = Math.random() < 0.45 ? 0 : 1; fstate[i] = 0;
+    ftype[i] ? sim.nMin++ : sim.nGas++;
+  }
+  sim.freeGas = sim.nGas; sim.freeMin = sim.nMin;
+  genCracks(); crackMat.opacity = 0;
+  document.getElementById('btnRun').textContent = 'Start';
+  setStatus('Press Start to begin freezing.');
+  updateFreezeVisuals(); updateReadout(); drawChart();
+}
+
+function trap(i, isVoid){
+  fstate[i] = isVoid ? 2 : 1;
+  if (ftype[i]){ sim.freeMin--; sim.trapMin++; } else sim.freeGas--;
+  if (isVoid) sim.voids++;
+}
+
+function stepSim(dt){
+  const vU = sim.v/10;                              // units (cm) per hour
+  const maxD = sim.mode === 'omni' ? HALF : L;
+  const Vb = liquidVolume(sim.d);
+  // Brownian motion of free particles inside current liquid region
+  const sig = 0.1*Math.sqrt(dt);
+  const hB = HALF - sim.d, yfB = HALF - sim.d;
+  for (let i=0;i<N;i++){
+    if (fstate[i]) continue;
+    for (let a=0;a<3;a++){
+      let x = fpos[i*3+a] + (Math.random()-.5)*sig*2;
+      if (sim.mode === 'omni') x = Math.max(-hB, Math.min(hB, x));
+      else x = a===1 ? Math.max(-HALF, Math.min(yfB, x)) : Math.max(-HALF, Math.min(HALF, x));
+      fpos[i*3+a] = x;
+    }
+  }
+  sim.d = Math.min(maxD, sim.d + vU*dt); sim.t += dt;
+  const Va = liquidVolume(sim.d), dV = Vb - Va;
+
+  // concentrations in remaining liquid (relative to source)
+  const Cg = Vb > 1e-6 ? (sim.freeGas/Vb)/(sim.nGas/VT) : 99;
+  const Cm = Vb > 1e-6 ? (sim.freeMin/Vb)/(sim.nMin/VT) : 99;
+  sim.cg = Cg; sim.cm = Cm;
+  const ke = keff(sim.v);
+  const S = 2 + 3*Math.exp(-(sim.v-1)/3);           // supersaturation threshold for void nucleation
+  const engulf = 0.6*smoothstep(4, 12, sim.v);       // direct bubble engulfment at fast fronts
+  const sg = smoothstep(S, 1.6*S, Cg), sm = smoothstep(1.25*S, 2*S, Cm);
+  const kg = ke + (1-ke)*sg, km = ke + (1-ke)*sm;
+  const voidG = ((1-ke)*sg/kg) + (1 - (1-ke)*sg/kg)*engulf;
+  const voidM = ((1-ke)*sm/km) + (1 - (1-ke)*sm/km)*engulf*0.5;
+
+  // find particles swept by the front
+  const h = HALF - sim.d, yf = HALF - sim.d, encG = [], encM = [];
+  for (let i=0;i<N;i++){
+    if (fstate[i]) continue;
+    const x = fpos[i*3], y = fpos[i*3+1], z = fpos[i*3+2];
+    const out = sim.mode === 'omni' ? (Math.abs(x)>h || Math.abs(y)>h || Math.abs(z)>h) : (y > yf);
+    if (out) (ftype[i] ? encM : encG).push(i);
+  }
+  // Scheil mass balance: expected incorporation = k * C_L * dV
+  const pG = encG.length ? Math.min(1, kg*(sim.freeGas/Math.max(Vb,1e-6))*dV/encG.length) : 0;
+  const pM = encM.length ? Math.min(1, km*(sim.freeMin/Math.max(Vb,1e-6))*dV/encM.length) : 0;
+  const reject = (i) => {   // push ahead of the front (solute pile-up layer)
+    if (sim.mode === 'omni'){
+      for (let a=0;a<3;a++){
+        const x = fpos[i*3+a];
+        if (x > h) fpos[i*3+a] = Math.max(-h, h - expo(0.22));
+        else if (x < -h) fpos[i*3+a] = Math.min(h, -h + expo(0.22));
+      }
+    } else fpos[i*3+1] = Math.max(-HALF, yf - expo(0.22));
+  };
+  for (const i of encG) Math.random() < pG ? trap(i, Math.random() < voidG) : reject(i);
+  for (const i of encM) Math.random() < pM ? trap(i, Math.random() < voidM) : reject(i);
+
+  const frozen = 1 - Va/VT;
+  if (sim.mode === 'dir' && document.getElementById('harvest').checked && frozen >= 0.8){
+    sim.done = sim.harvested = true; sim.running = false;
+  }
+  if (sim.d >= maxD - 1e-6){
+    for (let i=0;i<N;i++) if (!fstate[i]) trap(i, true);    // last liquid freezes with everything in it
+    sim.done = true; sim.running = false;
+  }
+  const Vf = VT - liquidVolume(sim.d);
+  sim.tds = Vf > 0.05 ? (sim.trapMin/Vf)/(sim.nMin/VT) : 0;
+  sim.history.push({ f:frozen, cg:Math.min(10, Cg), tds:Math.min(1, sim.tds) });
+}
+
+function updateFreezeVisuals(){
+  const omni = sim.mode === 'omni';
+  if (omni){
+    const h = Math.max(0.001, HALF - sim.d);
+    iceBox.scale.set(L,L,L); iceBox.position.set(0,0,0); iceBox.visible = sim.d > 0.001;
+    liqBox.scale.setScalar(2*h); liqBox.position.set(0,0,0); liqBox.visible = h > 0.01;
+    frontEdges.scale.setScalar(2*h); frontEdges.position.set(0,0,0); frontEdges.visible = h > 0.01 && !sim.done;
+    frontPlane.visible = false;
+  } else {
+    const d = Math.max(0.001, sim.d), yf = HALF - sim.d, depth = Math.max(0.001, L - sim.d);
+    iceBox.scale.set(L, d, L); iceBox.position.set(0, HALF - d/2, 0); iceBox.visible = sim.d > 0.001;
+    liqBox.scale.set(L, depth, L); liqBox.position.set(0, -HALF + depth/2, 0); liqBox.visible = depth > 0.01;
+    frontEdges.scale.set(L, depth, L); frontEdges.position.copy(liqBox.position); frontEdges.visible = depth > 0.01 && sim.d > 0.001;
+    frontPlane.position.y = yf; frontPlane.visible = depth > 0.01 && sim.d > 0.001;
+  }
+  insul.visible = !omni; arrowsOmni.visible = omni; arrowsDir.visible = !omni;
+  for (let i=0;i<N;i++){
+    const c = COL[fstate[i]][ftype[i]];
+    fcol[i*3] = c[0]; fcol[i*3+1] = c[1]; fcol[i*3+2] = c[2]; falpha[i] = ALPHA[fstate[i]];
+  }
+  pGeo.attributes.position.needsUpdate = true; pGeo.attributes.aColor.needsUpdate = true; pGeo.attributes.aAlpha.needsUpdate = true;
+}
+
+const $ = id => document.getElementById(id);
+function setStatus(t){ $('status').textContent = t; }
+function updateReadout(){
+  const Va = liquidVolume(sim.d), frozen = 1 - Va/VT;
+  $('r_time').textContent = sim.t.toFixed(1) + ' h';
+  $('r_front').textContent = (sim.d*10).toFixed(1) + ' mm' + (sim.mode==='omni' ? ' from each face' : ' from top');
+  $('r_frozen').textContent = (frozen*100).toFixed(0) + ' %';
+  $('r_keff').textContent = keff(sim.v).toFixed(3);
+  $('r_cg').textContent = Va > 0.01 ? sim.cg.toFixed(2) + ' ×' : '—';
+  $('r_cm').textContent = Va > 0.01 ? sim.cm.toFixed(2) + ' ×' : '—';
+  $('r_tds').textContent = frozen > 0.01 ? (sim.tds*100).toFixed(0) + ' %' : '—';
+  $('r_red').textContent = frozen > 0.01 ? Math.max(0, (1-sim.tds)*100).toFixed(0) + ' %' : '—';
+  $('r_voids').textContent = sim.voids;
+  if (sim.running){
+    if (sim.mode === 'omni'){
+      setStatus(frozen < 0.6 ? 'Fronts advance from all six faces, rejecting gas and minerals inward…'
+        : frozen < 0.9 ? 'Impurities are cornered in the shrinking core — concentration climbs, bubbles start nucleating.'
+        : 'The core freezes with micro-voids and inclusions trapped inside.');
+    } else {
+      setStatus(frozen < 0.6 ? 'A single planar front moves down slowly — impurities diffuse away and are swept toward the bottom.'
+        : 'Gas and TDS are concentrating in the last liquid at the bottom of the mold.');
+    }
+  }
+}
+function finishMessage(){
+  if (sim.mode === 'omni')
+    setStatus('Result: cloudy white core (Mie scattering from micro-voids) and internal thermal stress → cracks. Ice TDS ≈ source water.');
+  else if (sim.harvested)
+    setStatus(`Harvested at 80%: clear large-grain block with ${Math.max(0,(1-sim.tds)*100).toFixed(0)}% lower TDS. The concentrated bottom liquid is discarded.`);
+  else
+    setStatus('Fully frozen: the clear block sits above a cloudy bottom layer holding all rejected gas and TDS — cut it off.');
+}
+
+// chart
+const chart = $('chart'), cx = chart.getContext('2d');
+function drawChart(){
+  const dpr = Math.min(devicePixelRatio, 2), w = chart.clientWidth, h = chart.clientHeight;
+  if (!w) return;
+  if (chart.width !== w*dpr){ chart.width = w*dpr; chart.height = h*dpr; }
+  cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,w,h);
+  cx.strokeStyle = cssVar('--line'); cx.lineWidth = 1;
+  for (let i=1;i<4;i++){ cx.beginPath(); cx.moveTo(0, h*i/4); cx.lineTo(w, h*i/4); cx.stroke(); }
+  if (sim.mode==='dir'){ cx.setLineDash([3,3]); cx.strokeStyle=cssVar('--line2'); cx.beginPath(); cx.moveTo(w*0.8,0); cx.lineTo(w*0.8,h); cx.stroke(); cx.setLineDash([]); }
+  const H = sim.history; if (H.length < 2) return;
+  const line = (key, scale, color) => {
+    cx.strokeStyle = color; cx.lineWidth = 1.4; cx.beginPath();
+    H.forEach((p,i) => { const x = p.f*w, y = h - 4 - (p[key]/scale)*(h-8); i ? cx.lineTo(x,y) : cx.moveTo(x,y); });
+    cx.stroke();
+  };
+  line('cg', 10, cssVar('--text')); line('tds', 1, cssVar('--accent'));
+  cx.fillStyle = cssVar('--dim'); cx.font = '10px Inter, sans-serif'; cx.fillText('0% frozen', 4, h-6); cx.textAlign='right'; cx.fillText('100%', w-4, h-6); cx.textAlign='left';
+}
+
+const MODE_INFO = {
+  omni: 'Omnidirectional freezing (a normal freezer tray): heat leaves through all six faces, so the crystal fronts squeeze toward the center. Gas and minerals are pushed inward until they have nowhere to go, leaving micron-scale micro-voids and mineral inclusions trapped in the core. These scatter all visible wavelengths (Mie scattering), so the core looks milky white. Water expands ~9% as it freezes; the last liquid pressurizes the rigid shell, building thermal stress that makes the ice brittle and prone to cracking.',
+  dir: 'Directional freezing (insulated mold, open top): heat escapes only upward, so a single planar front moves down. When the freezing-front velocity is kept slow (≈1–3 mm/h), dissolved gases and TDS are driven to the far end and pile up in the last liquid at the bottom. The result is monocrystalline / large-grain polycrystalline ice that is crystal clear, with TDS 80–95% lower than the source water.'
+};
+function setMode(m){
+  sim.mode = m;
+  $('modeOmni').classList.toggle('active', m==='omni'); $('modeDir').classList.toggle('active', m==='dir');
+  $('modeInfo').textContent = MODE_INFO[m];
+  $('ovMode').textContent = m==='omni' ? 'Omnidirectional Freezing' : 'Directional Freezing';
+  $('ovModeSub').textContent = m==='omni' ? 'Heat extracted through all 6 faces' : 'Heat extracted through the top only · insulated sides & bottom';
+  $('harvestWrap').style.display = m==='dir' ? 'flex' : 'none';
+  sim.v = m==='omni' ? 6 : 2; sim.speed = m==='omni' ? 0.4 : 2;
+  $('vel').value = sim.v; $('velOut').textContent = sim.v.toFixed(1) + ' mm/h';
+  $('spd').value = sim.speed; $('spdOut').textContent = sim.speed.toFixed(1) + ' h/s';
+  resetSim();
+}
+$('modeOmni').onclick = () => setMode('omni');
+$('modeDir').onclick = () => setMode('dir');
+$('vel').oninput = e => { sim.v = +e.target.value; $('velOut').textContent = sim.v.toFixed(1) + ' mm/h'; updateReadout(); };
+$('spd').oninput = e => { sim.speed = +e.target.value; $('spdOut').textContent = sim.speed.toFixed(1) + ' h/s'; };
+$('btnRun').onclick = () => {
+  if (sim.done) resetSim();
+  sim.running = !sim.running;
+  $('btnRun').textContent = sim.running ? 'Pause' : 'Resume';
+};
+$('btnReset').onclick = resetSim;
+
+/* ============================================================
+   Tabs, resize, loop
+   ============================================================ */
+/* ============================================================
+   TAB 3 — Shaking vs Stirring (chilling & dilution kinetics)
+   ============================================================ */
+const sceneC = new THREE.Scene(); sceneC.background = BG; sceneC.environment = envTexDark;
+const camC = new THREE.PerspectiveCamera(30, 1, 0.8, 300); camC.position.set(0, 17, 48);
+const ctlC = new OrbitControls(camC, renderer.domElement);
+ctlC.enableDamping = true; ctlC.minDistance = 22; ctlC.maxDistance = 95; ctlC.maxPolarAngle = Math.PI*0.6; ctlC.enabled = false;
+ctlC.target.set(0, 8, 0);
+{
+  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(10, 20, 14); sceneC.add(key);
+  const rim = new THREE.DirectionalLight(0xdbe9f1, 1.2); rim.position.set(-12, 10, -14); sceneC.add(rim);
+  sceneC.add(new THREE.AmbientLight(0xffffff, 0.25));
+  const floorC = new THREE.Mesh(new THREE.CircleGeometry(220, 64), new THREE.MeshBasicMaterial({ color:0x0e1013, toneMapped:false }));
+  floorC.rotation.x = -Math.PI/2; floorC.position.y = -0.01; sceneC.add(floorC);
+  const gridC = new THREE.PolarGridHelper(34, 12, 7, 96); gridC.position.y = -0.004;
+  gridC.material.toneMapped = false; gridC.material.vertexColors = false; sceneC.add(gridC);
+  onTheme(dark => {
+    floorC.material.color.set(dark ? 0x0e1013 : 0xffffff);
+    gridC.material.color.set(dark ? 0x1f2328 : 0xdcdfe3);
+    sceneC.environment = dark ? envTexDark : envTex;
+  });
+}
+const DRINKS = {
+  daiquiri:  { vol:104, abv:23.1, sugar:13, color:0xe9e1b0, info:'60 ml white rum (40 %) · 22 ml lime · 22 ml 1:1 syrup → 104 ml at 23 % ABV. Classically shaken.' },
+  manhattan: { vol:90,  abv:35.5, sugar:4,  color:0x9c3818, info:'60 ml rye (45 %) · 30 ml sweet vermouth (16.5 %) · bitters → 90 ml at 35.5 % ABV. Classically stirred.' },
+  negroni:   { vol:90,  abv:27.5, sugar:10, color:0xb5301c, info:'30 ml gin (41 %) · 30 ml Campari (25 %) · 30 ml sweet vermouth (16.5 %) → 90 ml at 27.5 % ABV. Usually stirred.' },
+};
+const MP = { drink:'manhattan', iceT:-18, chilled:false, shakeInt:1, shakeTime:12, stirSpd:1, stirTime:30 };
+const CUBE = 1.25*IN, CUBE_G = CUBE**3 * 0.917;        // Kold-Draft style 1.25" cube ≈ 29 g
+const N_SHAKE = 6, N_STIR = 8;
+const T_END = 150, DT_REC = 0.1;
+
+// Lumped thermodynamic model (runs unstrained to T_END; straining = values held after stop time)
+function simulateMix(method){
+  const shake = method === 'shake', D = DRINKS[MP.drink];
+  const dt = 0.005, nC = shake ? N_SHAKE : N_STIR;
+  let Mi = nC*CUBE_G; const M0 = Mi;
+  const A0 = nC*6*CUBE*CUBE*1e-4;                        // m²
+  // Shaking shatters ice cubes into chips, doubling effective contact area (Dave Arnold / Cooking Issues)
+  const areaFactor = shake ? 2.0 : 1.0;
+  
+  // Penetration-depth thermal model: subzero ice provides sensible chilling without lumped delay
+  // Extra enthalpy absorbed by subzero ice: ~c_ice * 0.25 * (0 - T_ice)
+  const L_sensible = Math.max(0, -MP.iceT) * 2.09 * 0.25;
+  const L_fusion = 333.6 + L_sensible;
+
+  let V = D.vol, Tl = 22;
+  const Ve = D.vol*D.abv/100, mS = D.vol*D.sugar/100;
+  if (MP.iceT >= 0) V += 0.035*Mi;                       // wet ice: free surface meltwater (~3.5 % of ice mass)
+  const Cv = shake ? 95 : 360;                           // J/K: ~200 g steel tin vs ~450 g mixing glass
+  let Tv = MP.chilled ? 0 : 22;
+  const UAv = shake ? 6.0 : 2.6, UAamb = shake ? 1.4 : 0.45; // W/K (hands holding the tin while shaking)
+  const h = shake ? 3600*Math.pow(MP.shakeInt, 0.8) : 480*Math.pow(MP.stirSpd, 0.7); // W/m²K
+
+  const R = { T:[], V:[], Mi:[], Tv:[], M0, V0:D.vol, Ve };
+  const steps = Math.round(T_END/dt), every = Math.round(DT_REC/dt);
+  for (let i=0;i<=steps;i++){
+    const mE = Ve*0.789, mW = Math.max(1, V - Ve), mL = mE + mW + mS;
+    const w = 100*mE/(mE + mW);
+    // Freezing point depression of ethanol-sugar solution (calibrated to Dave Arnold / CRC)
+    const Tfp = -(0.33*w + 0.0025*w*w) - 0.05*(100*mS/mL);
+    if (i % every === 0){ R.T.push(Tl); R.V.push(V); R.Mi.push(Mi); R.Tv.push(Tv); }
+    const cL = 4.18 - 0.012*w;
+    const A = A0 * areaFactor * Math.pow(Math.max(Mi,0)/M0, 2/3);
+    const deltaT = Math.max(0, Tl - Tfp);
+    const Q_ice = Mi > 0 ? h*A*deltaT : 0;
+    const Q_vessel = UAv*(Tv - Tl);
+    Tv += (-Q_vessel + UAamb*(22 - Tv))*dt/Cv;
+    
+    // Effective latent heat includes sensible warming of meltwater boundary to bulk liquid
+    const L_eff = L_fusion + 4.18 * deltaT;
+    const dm = Q_ice > 0 ? Math.min(Mi, Q_ice*dt/L_eff) : 0;
+    Mi -= dm;
+    V += dm;
+    
+    // Liquid temperature: heat lost to melting ice + heat gained from vessel
+    Tl += (-Q_ice + Q_vessel)*dt/(mL*cL);
+  }
+  // plateau & time to reach near-equilibrium
+  const Tp = R.T[R.T.length-1];
+  let teq = T_END; for (let k=0;k<R.T.length;k++) if (R.T[k] <= Tp + 0.5){ teq = k*DT_REC; break; }
+  R.Tp = Tp; R.teq = teq;
+  return R;
+}
+let RUN = { shake:null, stir:null };
+const stopOf = m => m === 'shake' ? MP.shakeTime : MP.stirTime;
+function mixAt(m, t){
+  const R = RUN[m], k = Math.min(R.T.length-1, Math.round(Math.min(t, stopOf(m))/DT_REC));
+  const V = R.V[k];
+  return { T:R.T[k], V, Mi:R.Mi[k], Tv:R.Tv[k], dil:(V - R.V0)/R.V0*100, abv:R.Ve/V*100, melt:R.M0 - R.Mi[k] };
+}
+
+// --- 3D: Boston shaker tin (cutaway) + mixing glass with bar spoon
+const SX = -8.5, TX = 8.5, TIN_H = 17, TIN_RB = 4.0, TIN_RT = 4.8;
+const V2 = (x,y) => new THREE.Vector2(x,y);
+const shaker = new THREE.Group(); shaker.position.x = SX; sceneC.add(shaker);
+const shakeBody = new THREE.Group(); shaker.add(shakeBody);
+const tinGeo = new THREE.LatheGeometry([V2(0,0), V2(TIN_RB-0.3,0), V2(TIN_RB,0.3), V2(TIN_RT,TIN_H)], 96);
+const tinMat = addFresnel(new THREE.MeshPhysicalMaterial({ color:0xcfd5db, metalness:0.9, roughness:0.28, transparent:true, opacity:0.22,
+  side:THREE.DoubleSide, depthWrite:false, envMapIntensity:1.6 }), 0x3a4650, 0.6, 2.2, 0.45, 0xd9e2e8);
+const tin = new THREE.Mesh(tinGeo, tinMat); tin.renderOrder = 4; shakeBody.add(tin);
+const metalMat = new THREE.MeshStandardMaterial({ color:0xd8dde2, metalness:1, roughness:0.22, envMapIntensity:1.6 });
+const tinRim = new THREE.Mesh(new THREE.TorusGeometry(TIN_RT, 0.11, 10, 96), metalMat); tinRim.rotation.x = Math.PI/2; tinRim.position.y = TIN_H; shakeBody.add(tinRim);
+const tinFoot = new THREE.Mesh(new THREE.TorusGeometry(TIN_RB-0.05, 0.09, 8, 96), metalMat); tinFoot.rotation.x = Math.PI/2; tinFoot.position.y = 0.2; shakeBody.add(tinFoot);
+const frostMat = new THREE.MeshStandardMaterial({ color:0xf3f7f9, roughness:1, transparent:true, opacity:0, depthWrite:false });
+const frost = new THREE.Mesh(tinGeo, frostMat); frost.scale.set(1.015, 1, 1.015); frost.renderOrder = 5; shakeBody.add(frost);
+const shLiqMat = new THREE.MeshPhysicalMaterial({ color:0x9c3818, roughness:0.08, transparent:true, opacity:0.72, depthWrite:false, envMapIntensity:1.4, clearcoat:0.8 });
+const shLiq = new THREE.Mesh(new THREE.CylinderGeometry(TIN_RB+0.2, TIN_RB-0.05, 1, 64), shLiqMat); shLiq.renderOrder = 1; shakeBody.add(shLiq);
+const cubeGeoC = new RoundedBoxGeometry(CUBE, CUBE, CUBE, 4, 0.25);
+const shCubes = [];
+for (let i=0;i<N_SHAKE;i++){
+  const ring = i < 3 ? 0 : 1, a = (i%3)*2*Math.PI/3 + ring*Math.PI/3, r = 1.75;
+  const m = new THREE.Mesh(cubeGeoC, iceMat); m.renderOrder = 2;
+  m.userData.base = new THREE.Vector3(Math.cos(a)*r, 0.3 + CUBE/2 + ring*CUBE*0.98, Math.sin(a)*r);
+  m.userData.ph = Math.random()*6.28; m.userData.spin = new THREE.Vector3(Math.random()*4-2, Math.random()*4-2, Math.random()*4-2);
+  m.rotation.y = -a; shakeBody.add(m); shCubes.push(m);
+}
+const mixer = new THREE.Group(); mixer.position.x = TX; sceneC.add(mixer);
+const GM = GLASSES.mixing;
+const mixGlass = new THREE.Mesh(glassGeometry(GM), glassMat); mixGlass.renderOrder = 3; mixer.add(mixGlass);
+const fogMat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:1, transparent:true, opacity:0, depthWrite:false });
+const fog = new THREE.Mesh(mixGlass.geometry, fogMat); fog.scale.set(1.006, 1, 1.006); fog.renderOrder = 5; mixer.add(fog);
+const stLiqMat = shLiqMat.clone();
+const stLiq = new THREE.Mesh(new THREE.CylinderGeometry(GM.rIn-0.05, GM.rIn-0.05, 1, 64), stLiqMat); stLiq.renderOrder = 1; mixer.add(stLiq);
+const stirIce = new THREE.Group(); mixer.add(stirIce);
+const stCubes = [];
+for (let i=0;i<N_STIR;i++){
+  const top = i >= 5, a = top ? (i-5)*2*Math.PI/3 + 0.5 : i*2*Math.PI/5, r = top ? 1.3 : 2.45;
+  const m = new THREE.Mesh(cubeGeoC, iceMat); m.renderOrder = 2;
+  m.userData.base = new THREE.Vector3(Math.cos(a)*r, GM.base + CUBE/2 + (top ? CUBE*0.98 : 0), Math.sin(a)*r);
+  m.position.copy(m.userData.base); m.rotation.set((Math.random()-.5)*0.3, -a, (Math.random()-.5)*0.3);
+  stirIce.add(m); stCubes.push(m);
+}
+const spoonPivot = new THREE.Group(); mixer.add(spoonPivot);
+{
+  const spoon = new THREE.Group(); spoon.position.set(3.75, 0, 0); spoon.rotation.z = 0.07; spoonPivot.add(spoon);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 28, 12), metalMat); shaft.position.y = GM.base + 0.6 + 14; spoon.add(shaft);
+  const coil = new THREE.Mesh(new THREE.TorusKnotGeometry(0.16, 0.05, 160, 6, 40, 1), metalMat); coil.scale.set(1, 26, 1); // twisted stem hint
+  coil.visible = false; spoon.add(coil);
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 12), metalMat); bowl.scale.set(0.75, 0.25, 1); bowl.position.y = GM.base + 0.6; spoon.add(bowl);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), metalMat); knob.position.y = GM.base + 0.6 + 28; spoon.add(knob);
+}
+
+let mixT = 0, mixPlaying = false, stirAngle = 0, shakePhase = 0;
+function applyDrinkColor(){
+  const c = DRINKS[MP.drink].color;
+  shLiqMat.color.set(c); stLiqMat.color.set(c);
+}
+function updateMix3D(dt){
+  const s = mixAt('shake', mixT), r = mixAt('stir', mixT);
+  const shaking = mixPlaying && mixT > 0 && mixT < MP.shakeTime;
+  const stirring = mixPlaying && mixT > 0 && mixT < MP.stirTime;
+  // shaker motion
+  if (shaking){
+    shakePhase += dt*2*Math.PI*4.2*MP.shakeInt;
+    const k = Math.sin(shakePhase);
+    shakeBody.position.set(k*0.6, 3.2 + k*1.9*MP.shakeInt, 0);
+    shakeBody.rotation.z = 0.55 + k*0.22;
+  } else {
+    shakeBody.position.lerp(new THREE.Vector3(0,0,0), Math.min(1, dt*6));
+    shakeBody.rotation.z += (0 - shakeBody.rotation.z)*Math.min(1, dt*6);
+  }
+  const sS = Math.cbrt(Math.max(s.Mi, 0)/RUN.shake.M0);
+  shCubes.forEach(c => {
+    const b = c.userData.base; c.scale.setScalar(Math.max(sS, 1e-3)); c.visible = sS > 0.02;
+    if (shaking){
+      const u = Math.sin(shakePhase + c.userData.ph)*0.5 + 0.5;
+      c.position.set(b.x*0.8 + (Math.random()-.5)*0.25, 0.3 + CUBE*sS/2 + u*(TIN_H - 2.5 - CUBE), b.z*0.8 + (Math.random()-.5)*0.25);
+      c.rotation.x += c.userData.spin.x*dt*3; c.rotation.y += c.userData.spin.y*dt*3; c.rotation.z += c.userData.spin.z*dt*3;
+    } else {
+      c.position.lerp(new THREE.Vector3(b.x, 0.3 + (b.y - 0.3)*sS, b.z), Math.min(1, dt*8));
+    }
+  });
+  const shH = Math.min(TIN_H - 1, (s.V + 0.9*s.Mi/0.917)/(Math.PI*4.3*4.3));
+  shLiq.scale.y = Math.max(0.01, shH*(shaking ? 0.6 + Math.random()*0.15 : 1)); shLiq.position.y = 0.3 + shLiq.scale.y/2;
+  shLiqMat.opacity = mixT >= MP.shakeTime ? 0.88 : 0.72;     // aerated after a hard shake
+  frostMat.opacity = smoothstep(1, -5, s.Tv)*0.6;
+  // stirring motion
+  if (stirring){ stirAngle += dt*2*Math.PI*1.6*MP.stirSpd; }
+  stirIce.rotation.y = stirAngle*0.85; spoonPivot.rotation.y = stirAngle;
+  const sT = Math.cbrt(Math.max(r.Mi, 0)/RUN.stir.M0);
+  stCubes.forEach(c => { const b = c.userData.base; c.scale.setScalar(Math.max(sT, 1e-3)); c.visible = sT > 0.02;
+    c.position.set(b.x, GM.base + (b.y - GM.base)*sT, b.z); });
+  const stH = Math.min(GM.h - 0.5, (r.V + 0.9*r.Mi/0.917)/(Math.PI*GM.rIn*GM.rIn));
+  stLiq.scale.y = stH; stLiq.position.y = GM.base + 0.02 + stH/2;
+  fogMat.opacity = smoothstep(14, 0, r.Tv)*0.16;
+  // floating labels
+  const w = stage.clientWidth, hh = stage.clientHeight;
+  const place = (el, x, y, z) => { const v = new THREE.Vector3(x, y, z).project(camC);
+    el.style.left = ((v.x*0.5 + 0.5)*w) + 'px'; el.style.top = ((-v.y*0.5 + 0.5)*hh) + 'px'; el.style.opacity = v.z < 1 ? 1 : 0; };
+  place($('lblShake'), SX, TIN_H + 6.5, 0); place($('lblStir'), TX, GM.h + 6, 0);
+  $('lsT').textContent = s.T.toFixed(1) + ' °C'; $('lsD').textContent = 'dilution ' + s.dil.toFixed(0) + ' %  ·  ' + s.abv.toFixed(1) + ' % ABV';
+  $('ltT').textContent = r.T.toFixed(1) + ' °C'; $('ltD').textContent = 'dilution ' + r.dil.toFixed(0) + ' %  ·  ' + r.abv.toFixed(1) + ' % ABV';
+}
+function mixXMax(){ return Math.max(20, Math.ceil(Math.max(MP.shakeTime, MP.stirTime)*1.15/10)*10); }
+function updateMixReadout(){
+  const s = mixAt('shake', mixT), r = mixAt('stir', mixT);
+  [[s,0],[r,1]].forEach(([v,i]) => {
+    $('cT'+i).textContent = v.T.toFixed(1) + ' °C';
+    $('cD'+i).textContent = v.dil.toFixed(0) + ' %';
+    $('cA'+i).textContent = v.abv.toFixed(1) + ' %';
+    $('cM'+i).textContent = v.melt.toFixed(0) + ' g';
+    $('cV'+i).textContent = v.V.toFixed(0) + ' ml';
+  });
+  const eq = m => { const R = RUN[m], st = stopOf(m);
+    return R.teq <= st ? R.teq.toFixed(1) + ' s' : `not reached (≈${R.teq.toFixed(0)} s)`; };
+  $('cE0').textContent = eq('shake'); $('cE1').textContent = eq('stir');
+  $('mixTOut').textContent = mixT.toFixed(1) + ' s';
+  $('mixT').value = mixT;
+}
+function drawMixChart(cv, key, fmt){
+  const dpr = Math.min(devicePixelRatio, 2), w = cv.clientWidth, h = cv.clientHeight;
+  if (!w) return;
+  if (cv.width !== Math.round(w*dpr)){ cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+  const XM = mixXMax(), n = Math.round(XM/DT_REC);
+  const val = (m, k) => { const R = RUN[m], kk = Math.min(k, Math.round(stopOf(m)/DT_REC));
+    return key === 'T' ? R.T[kk] : (R.V[kk] - R.V0)/R.V0*100; };
+  let lo = Infinity, hi = -Infinity;
+  ['shake','stir'].forEach(m => { for (let k=0;k<=n;k+=5){ const v = val(m,k); lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+  if (key === 'T'){ lo = Math.floor(lo - 1); hi = 23; } else { lo = 0; hi = Math.ceil((hi + 4)/5)*5; }
+  const X = t => 30 + (t/XM)*(w - 38), Y = v => 8 + (1 - (v - lo)/(hi - lo))*(h - 24);
+  g.strokeStyle = cssVar('--line'); g.lineWidth = 1; g.fillStyle = cssVar('--dim'); g.font = '10px Inter, sans-serif';
+  for (let i=0;i<=3;i++){ const v = lo + (hi - lo)*i/3, y = Y(v); g.beginPath(); g.moveTo(30, y); g.lineTo(w - 8, y); g.stroke(); g.fillText(fmt(v), 2, y + 3); }
+  if (key === 'T' && lo < 0 && hi > 0){ g.setLineDash([2,3]); g.strokeStyle = cssVar('--line2'); g.beginPath(); g.moveTo(30, Y(0)); g.lineTo(w-8, Y(0)); g.stroke(); g.setLineDash([]); }
+  g.textAlign = 'right'; g.fillText(XM + ' s', w - 8, h - 3); g.textAlign = 'left'; g.fillText('0', 30, h - 3);
+  [['shake', cssVar('--accent')], ['stir', cssVar('--warm')]].forEach(([m, col]) => {
+    const st = Math.min(stopOf(m), XM), ks = Math.round(st/DT_REC);
+    g.strokeStyle = col; g.lineWidth = 1.6; g.beginPath();
+    for (let k=0;k<=ks;k++){ const x = X(k*DT_REC), y = Y(val(m,k)); k ? g.lineTo(x,y) : g.moveTo(x,y); }
+    g.stroke();
+    g.setLineDash([4,4]); g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(st), Y(val(m,ks))); g.lineTo(X(XM), Y(val(m,ks))); g.stroke(); g.setLineDash([]);
+    g.fillStyle = col; g.beginPath(); g.arc(X(st), Y(val(m,ks)), 2.5, 0, 6.3); g.fill();
+  });
+  g.strokeStyle = cssVar('--mute'); g.lineWidth = 1; g.beginPath(); g.moveTo(X(Math.min(mixT, XM)), 6); g.lineTo(X(Math.min(mixT, XM)), h - 14); g.stroke();
+}
+function drawMixCharts(){
+  drawMixChart($('chartT'), 'T', v => v.toFixed(0) + '°');
+  drawMixChart($('chartD'), 'D', v => v.toFixed(0) + '%');
+}
+function recomputeMix(){
+  RUN.shake = simulateMix('shake'); RUN.stir = simulateMix('stir');
+  $('mixT').max = mixXMax(); if (mixT > mixXMax()) mixT = mixXMax();
+  $('mixDrinkInfo').textContent = DRINKS[MP.drink].info;
+  applyDrinkColor(); updateMixReadout(); drawMixCharts();
+}
+// controls
+const segPick = (id, attr, fn) => $(id).querySelectorAll('button').forEach(b => b.onclick = () => {
+  $(id).querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); fn(b.dataset[attr]); recomputeMix(); });
+segPick('mixDrink', 'd', v => MP.drink = v);
+segPick('mixIce', 't', v => MP.iceT = +v);
+$('mixChill').onchange = e => { MP.chilled = e.target.checked; recomputeMix(); };
+const lbl = (v, a) => v < a[0] ? a[1] : v < a[2] ? a[3] : a[4];
+$('shInt').oninput = e => { MP.shakeInt = +e.target.value; $('shIntOut').textContent = lbl(MP.shakeInt, [0.75,'Gentle',1.2,'Hard','Very hard']); recomputeMix(); };
+$('shTime').oninput = e => { MP.shakeTime = +e.target.value; $('shTimeOut').textContent = MP.shakeTime + ' s'; recomputeMix(); };
+$('stSpd').oninput = e => { MP.stirSpd = +e.target.value; $('stSpdOut').textContent = lbl(MP.stirSpd, [0.8,'Slow',1.2,'Standard','Fast']); recomputeMix(); };
+$('stTime').oninput = e => { MP.stirTime = +e.target.value; $('stTimeOut').textContent = MP.stirTime + ' s'; recomputeMix(); };
+$('mixMatch').onclick = () => {
+  const target = mixAt('shake', MP.shakeTime).T, R = RUN.stir;
+  let bestK = 0, bestDiff = Infinity;
+  for (let i=0; i<R.T.length; i++){
+    const diff = Math.abs(R.T[i] - target);
+    if (diff < bestDiff){ bestDiff = diff; bestK = i; }
+  }
+  MP.stirTime = Math.min(120, Math.max(5, Math.round(bestK*DT_REC)));
+  $('stTime').value = MP.stirTime; $('stTimeOut').textContent = MP.stirTime + ' s'; recomputeMix();
+};
+$('mixPlay').onclick = () => { if (mixT >= mixXMax() - 0.01) mixT = 0; mixPlaying = !mixPlaying; $('mixPlay').textContent = mixPlaying ? '❚❚' : '▶'; };
+$('mixT').oninput = e => { mixT = +e.target.value; mixPlaying = false; $('mixPlay').textContent = '▶'; updateMixReadout(); drawMixCharts(); };
+recomputeMix();
+
+/* ============================================================
+   Kissaten jazz — generated live with the Web Audio API
+   (mellow Rhodes-style piano trio: ii–V–I comping, walking bass, brushes, ride, vinyl crackle)
+   ============================================================ */
+const Jazz = (() => {
+  let ctx, master, pianoBus, bassBus, drumBus, noiseB, timer = null, nextBar = 0, bar = 0, on = false, vol = 0.55, lastBass = 41, lastMel = 72;
+  const BPM = 80, BEAT = 60/BPM, SW = 2/3;           // swing: off-beat at 2/3 of the beat
+  const mtof = m => 440*Math.pow(2, (m - 69)/12);
+  const CH = {
+    Fmaj9:{ r:41, v:[57,60,64,67], s:[0,2,4,7,9,11], t:[0,4,7,11] },
+    D7b9: { r:38, v:[54,60,63,69], s:[0,1,4,7,9,10], t:[0,4,7,10] },
+    Gm9:  { r:43, v:[58,62,65,69], s:[0,2,3,5,7,10], t:[0,3,7,10] },
+    C13:  { r:36, v:[58,62,64,69], s:[0,2,4,7,9,10], t:[0,4,7,10] },
+    Am7:  { r:45, v:[55,60,64,67], s:[0,2,3,5,7,10], t:[0,3,7,10] },
+    Gm7:  { r:43, v:[53,58,62,65], s:[0,2,3,5,7,10], t:[0,3,7,10] },
+    C7:   { r:36, v:[52,58,62,69], s:[0,2,4,7,9,10], t:[0,4,7,10] },
+    Bbmaj9:{ r:46, v:[57,60,62,65], s:[0,2,4,7,9,11], t:[0,4,7,11] },
+    Eb9:  { r:39, v:[55,61,65,70], s:[0,2,4,7,9,10], t:[0,4,7,10] },
+    D7:   { r:38, v:[54,60,64,69], s:[0,2,4,7,9,10], t:[0,4,7,10] },
+  };
+  const PROG = [ ['Fmaj9'],['D7b9'],['Gm9'],['C13'],['Am7','D7b9'],['Gm7','C13'],['Fmaj9'],['Gm7','C7'],
+                 ['Bbmaj9'],['Eb9'],['Am7'],['D7b9'],['Gm9'],['C13'],['Fmaj9','D7b9'],['Gm7','C7'] ];
+  const COMP = [ [[0,1.3],[1+SW,0.9]], [[SW,1.1],[2+SW,1.0]], [[0,0.9],[2,0.9]], [[1,0.6],[3,0.6]], [[0,3.4]], [[0,0.5],[1+SW,0.5],[3+SW,0.4]] ];
+  const rnd = (a,b) => a + Math.random()*(b - a), pick = a => a[Math.floor(Math.random()*a.length)];
+
+  function init(){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = 0;
+    const warm = ctx.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 6500;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 3;
+    master.connect(warm); warm.connect(comp); comp.connect(ctx.destination);
+    // reverb: small wooden café room
+    const len = ctx.sampleRate*2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c=0;c<2;c++){ const d = ir.getChannelData(c); for (let i=0;i<len;i++) d[i] = (Math.random()*2 - 1)*Math.pow(1 - i/len, 3.5); }
+    const rev = ctx.createConvolver(); rev.buffer = ir; const revG = ctx.createGain(); revG.gain.value = 0.3; rev.connect(revG); revG.connect(master);
+    const bus = (g, send) => { const b = ctx.createGain(); b.gain.value = g; b.connect(master); const s = ctx.createGain(); s.gain.value = send; b.connect(s); s.connect(rev); return b; };
+    pianoBus = bus(0.9, 0.45); bassBus = bus(0.85, 0.08); drumBus = bus(0.55, 0.25);
+    noiseB = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+    { const d = noiseB.getChannelData(0); for (let i=0;i<d.length;i++) d[i] = Math.random()*2 - 1; }
+    // vinyl: hiss + crackle
+    const crack = ctx.createBuffer(1, ctx.sampleRate*5, ctx.sampleRate);
+    { const d = crack.getChannelData(0); for (let i=0;i<d.length;i++){ d[i] = (Math.random()*2 - 1)*0.012; if (Math.random() < 0.00035) d[i] += (Math.random()*2 - 1)*rnd(0.3, 1); } }
+    const vs = ctx.createBufferSource(); vs.buffer = crack; vs.loop = true;
+    const vhp = ctx.createBiquadFilter(); vhp.type = 'highpass'; vhp.frequency.value = 700;
+    const vg = ctx.createGain(); vg.gain.value = 0.22; vs.connect(vhp); vhp.connect(vg); vg.connect(master); vs.start();
+    // continuous brush swirl on the snare, breathing with the beat
+    const bs = ctx.createBufferSource(); bs.buffer = noiseB; bs.loop = true;
+    const bbp = ctx.createBiquadFilter(); bbp.type = 'bandpass'; bbp.frequency.value = 2200; bbp.Q.value = 0.7;
+    const bg = ctx.createGain(); bg.gain.value = 0.012;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = BPM/60/2; const lg = ctx.createGain(); lg.gain.value = 0.009;
+    lfo.connect(lg); lg.connect(bg.gain); bs.connect(bbp); bbp.connect(bg); bg.connect(drumBus); bs.start(); lfo.start();
+  }
+  function piano(m, t, dur, vel){
+    const f = mtof(m), out = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 900 + vel*2600; out.connect(lp); lp.connect(pianoBus);
+    const decay = 1.4 + (84 - m)*0.035;
+    out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(vel*0.14, t + 0.008);
+    out.gain.setTargetAtTime(vel*0.07, t + 0.01, 0.15);
+    out.gain.setTargetAtTime(0.0001, t + 0.25, decay);
+    out.gain.setTargetAtTime(0, t + Math.max(0.3, dur), 0.18);
+    [[1,1,'sine'],[2,0.32,'sine'],[3,0.1,'sine'],[4,0.04,'sine'],[1.004,0.22,'triangle']].forEach(([mul, amp, type], n) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f*mul;
+      g.gain.setValueAtTime(amp, t); g.gain.setTargetAtTime(0, t, decay/(1 + n*1.5));
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 1.6);
+    });
+  }
+  function bass(m, t, dur, vel){
+    const f = mtof(m), g = ctx.createGain(), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650;
+    g.connect(lp); lp.connect(bassBus);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel*0.55, t + 0.012);
+    g.gain.setTargetAtTime(vel*0.25, t + 0.015, 0.09); g.gain.setTargetAtTime(0, t + dur*0.92, 0.05);
+    [[1,'sine',1],[1,'triangle',0.35],[2,'sine',0.15]].forEach(([mul, type, a]) => {
+      const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; o.frequency.value = f*mul; og.gain.value = a;
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.4);
+    });
+  }
+  function noiseHit(t, type, freq, q, gain, dec, attack = 0.002){
+    const s = ctx.createBufferSource(); s.buffer = noiseB; s.playbackRate.value = rnd(0.9, 1.1);
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + attack); g.gain.setTargetAtTime(0, t + attack, dec);
+    s.connect(f); f.connect(g); g.connect(drumBus); s.start(t, Math.random()*1.5); s.stop(t + dec*8 + 0.05);
+  }
+  function ride(t, vel){
+    noiseHit(t, 'bandpass', 8200, 1.2, vel*0.05, 0.22);
+    [3150, 4730, 6110].forEach(fr => { const o = ctx.createOscillator(), g = ctx.createGain(), bp = ctx.createBiquadFilter();
+      o.type = 'square'; o.frequency.value = fr; bp.type = 'bandpass'; bp.frequency.value = 7000; bp.Q.value = 2;
+      g.gain.setValueAtTime(vel*0.0035, t); g.gain.setTargetAtTime(0, t, 0.3); o.connect(bp); bp.connect(g); g.connect(drumBus); o.start(t); o.stop(t + 1.5); });
+  }
+  function kick(t, vel){
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.09);
+    g.gain.setValueAtTime(vel*0.22, t); g.gain.setTargetAtTime(0, t, 0.07); o.connect(g); g.connect(drumBus); o.start(t); o.stop(t + 0.5);
+  }
+  const near = (pc, ref) => { let n = pc; while (n < ref - 6) n += 12; while (n > ref + 6) n -= 12; return n; };
+  function scheduleBar(b, t0){
+    const chords = PROG[b % PROG.length].map(k => CH[k]), nextC = CH[PROG[(b + 1) % PROG.length][0]];
+    const chordAt = beat => chords.length > 1 && beat >= 2 ? chords[1] : chords[0];
+    const T = beat => t0 + beat*BEAT + rnd(-0.006, 0.006);       // human timing
+    // walking bass
+    for (let q=0;q<4;q++){
+      const c = chordAt(q), isStart = q === 0 || (chords.length > 1 && q === 2);
+      const nextStart = q === 3 ? nextC : (chords.length > 1 && q === 1 ? chords[1] : null);
+      let n;
+      if (isStart) n = near(c.r, lastBass);
+      else if (nextStart) n = near(nextStart.r, lastBass) + (Math.random() < 0.5 ? 1 : -1);
+      else n = near(c.r + pick(c.t.slice(1)), lastBass);
+      while (n < 31) n += 12; while (n > 52) n -= 12;
+      bass(n, T(q), BEAT*0.95, q === 0 ? 0.95 : rnd(0.7, 0.85)); lastBass = n;
+    }
+    // ride "ding ding-ga ding ding-ga", hi-hat on 2 & 4, feathered kick
+    [[0,0.7],[1,0.9],[1+SW,0.5],[2,0.7],[3,0.9],[3+SW,0.5]].forEach(([p, v]) => ride(T(p), v*rnd(0.85, 1)));
+    [1,3].forEach(p => noiseHit(T(p), 'highpass', 6500, 0.7, 0.05, 0.035));
+    [0,1,2,3].forEach(p => kick(T(p), 0.25));
+    if (Math.random() < 0.35) noiseHit(T(3 + SW), 'bandpass', 2000, 0.6, 0.06, 0.09, 0.015);   // brush accent
+    // piano comping (rootless voicings, slightly rolled)
+    pick(COMP).forEach(([p, d]) => {
+      const c = chordAt(p), vel = rnd(0.35, 0.55);
+      let v = c.v.slice(); if (Math.random() < 0.3) v = [...v.slice(1), v[0] + 12];
+      v.forEach((m, i) => piano(m, T(p) + i*0.012, d*BEAT, vel*(i === v.length - 1 ? 1.1 : 0.9)));
+    });
+    // sparse right-hand melody, phrased in 4-bar sentences (last bar breathes)
+    if (b % 4 !== 3){
+      for (let e=0;e<8;e++){
+        const p = Math.floor(e/2) + (e % 2 ? SW : 0);
+        if (Math.random() > (e % 2 ? 0.38 : 0.5)) continue;
+        const c = chordAt(p), pool = [];
+        for (let m = 64; m <= 86; m++){ const iv = ((m - c.r) % 12 + 12) % 12; if (c.s.includes(iv)) pool.push(m); }
+        const cand = pool.filter(m => Math.abs(m - lastMel) <= 5 && m !== lastMel);
+        const strong = cand.filter(m => c.t.includes(((m - c.r) % 12 + 12) % 12));
+        const m = (e % 2 === 0 && strong.length && Math.random() < 0.7) ? pick(strong) : pick(cand.length ? cand : pool);
+        piano(m, T(p), BEAT*(e % 2 ? 0.45 : 0.75), rnd(0.5, 0.7)); lastMel = m;
+      }
+    }
+  }
+  function tick(){ while (nextBar < ctx.currentTime + 0.8){ scheduleBar(bar, nextBar); nextBar += 4*BEAT; bar++; } }
+  return {
+    get on(){ return on; },
+    async toggle(){
+      if (!ctx) init();
+      on = !on;
+      if (on){
+        await ctx.resume();
+        nextBar = ctx.currentTime + 0.15; bar = 0;
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.setTargetAtTime(vol, ctx.currentTime, 0.6);
+        tick(); timer = setInterval(tick, 120);
+      } else {
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.setTargetAtTime(0, ctx.currentTime, 0.25);
+        clearInterval(timer); timer = null;
+        setTimeout(() => { if (!on) ctx.suspend(); }, 1500);
+      }
+      return on;
+    },
+    setVol(v){ vol = v; if (ctx && on) master.gain.setTargetAtTime(v, ctx.currentTime, 0.1); }
+  };
+})();
+$('musicBtn').onclick = async () => {
+  const on = await Jazz.toggle();
+  $('musicBtn').classList.toggle('on', on); $('musicVol').classList.toggle('show', on);
+};
+$('musicVol').oninput = e => Jazz.setVol(+e.target.value);
+
+/* ============================================================
+   Theme
+   ============================================================ */
+const ICON_MOON = '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>';
+const ICON_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+function applyTheme(dark){
+  isDark = dark;
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  BG.set(dark ? 0x0e1013 : 0xffffff); renderer.setClearColor(BG, 1);
+  fresnelMats.forEach(m => m.userData.edge.copy(dark ? m.userData.edgeDark : m.userData.edgeLight));
+  themeHooks.forEach(fn => fn(dark));
+  $('themeIcon').innerHTML = dark ? ICON_SUN : ICON_MOON;
+  try { localStorage.setItem('icePhysicsTheme', dark ? 'dark' : 'light'); } catch(e) {}
+  drawChart(); drawMixCharts();
+}
+$('themeBtn').onclick = () => applyTheme(!isDark);
+
+let savedTheme = null;
+try { savedTheme = localStorage.getItem('icePhysicsTheme'); } catch(e){}
+applyTheme(savedTheme ? savedTheme === 'dark' : true);
+
+let tab = 'glass';
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x===b));
+  document.querySelectorAll('aside').forEach(a => a.classList.toggle('active', a.id === 'panel-'+tab));
+  document.querySelectorAll('.layer').forEach(l => l.classList.toggle('active', l.dataset.layer === tab));
+  ctlA.enabled = tab==='glass'; ctlB.enabled = tab==='freeze'; ctlC.enabled = tab==='mix';
+  if (tab==='freeze') requestAnimationFrame(drawChart);
+  if (tab==='mix') requestAnimationFrame(drawMixCharts);
+  // Auto-close drawer on mobile when switching tabs
+  document.body.classList.remove('drawer-open');
+});
+
+// Mobile drawer toggle
+const drawerToggle = document.getElementById('drawerToggle');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+if (drawerToggle) {
+  drawerToggle.onclick = () => {
+    document.body.classList.toggle('drawer-open');
+  };
+}
+if (drawerBackdrop) {
+  drawerBackdrop.onclick = () => {
+    document.body.classList.remove('drawer-open');
+  };
+}
+
+const urlTab = new URLSearchParams(location.search).get('tab') || (location.hash ? location.hash.replace('#','') : null);
+if (urlTab && ['glass', 'freeze', 'mix'].includes(urlTab)) {
+  const btn = document.querySelector(`.tabs button[data-tab="${urlTab}"]`);
+  if (btn) btn.click();
+}
+
+function resize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camA.aspect = camB.aspect = camC.aspect = w/h;
+  // Dynamically widen camC FOV on narrow portrait mobile screens so both Shaker tin and Mixing glass fit with padding
+  if (w < 680) {
+    camC.fov = Math.min(50, 30 * (680 / Math.max(320, w)));
+  } else {
+    camC.fov = 30;
+  }
+  camA.updateProjectionMatrix(); camB.updateProjectionMatrix(); camC.updateProjectionMatrix();
+  ptsMat.uniforms.scale.value = (h * renderer.getPixelRatio()) / (2 * Math.tan(THREE.MathUtils.degToRad(camB.fov/2)));
+  drawChart(); drawMixCharts();
+}
+new ResizeObserver(resize).observe(stage);
+
+setMode('omni');
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (tab === 'glass'){
+    if (meltPlaying){
+      meltT = Math.min(60, meltT + dt*3);  // 3 min per second
+      $('mt').value = meltT; applyMelt();
+      if (meltT >= 60){ meltPlaying = false; $('mPlay').textContent = 'Play melt'; }
+    }
+    updateBubbles(dt);
+    ctlA.update(); renderer.render(sceneA, camA);
+  } else if (tab === 'freeze'){
+    if (sim.running){
+      let simDt = dt*sim.speed;
+      while (simDt > 1e-6 && sim.running){ const s = Math.min(0.02, simDt); stepSim(s); simDt -= s; }
+      updateFreezeVisuals(); updateReadout(); drawChart();
+      if (sim.done){ $('btnRun').textContent = 'Restart'; finishMessage(); }
+    }
+    if (sim.done && sim.mode === 'omni') crackMat.opacity = Math.min(0.6, crackMat.opacity + dt*0.4);
+    ctlB.update(); renderer.render(sceneB, camB);
+  } else if (tab === 'mix'){
+    if (mixPlaying){
+      mixT = Math.min(mixXMax(), mixT + dt * 1.5);
+      $('mixT').value = mixT;
+      updateMixReadout(); drawMixCharts();
+      if (mixT >= mixXMax()){ mixPlaying = false; $('mixPlay').textContent = '▶'; }
+    }
+    updateMix3D(dt);
+    ctlC.update(); renderer.render(sceneC, camC);
+  }
+});
+</script>
+</body>
+</html>
